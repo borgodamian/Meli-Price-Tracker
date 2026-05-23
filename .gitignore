@@ -28,5 +28,4 @@ pnpm-debug.log*
 .agents/
 .claude/
 
-# keep a single lockfile manager
-package-lock.json
+
