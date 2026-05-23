@@ -4,28 +4,28 @@
             "Zapatillas Tracking": [
                 {
                     "url": "https://www.mercadolibre.com.ar/terrex-skychaser-ax5-gtx-jq2209-adidas/up/MLAU3180814840?pdp_filters=item_id%3AMLA2082821978#polycard_client=wishlist&wid=MLA2082821978&sid=bookmarks",
-                    "threshold_percentage": 10.0,
-                    "image": "ZapatillasTracking.webp"
+                    "threshold_percentage": 10,
+                    "image": "Zapatillas Tracking.webp"
                 }
             ],
-            "Botas Tracking": [
-            ]
+            "Botas Tracking": []
         },
         "Remera": [
             {
                 "url": "https://articulo.mercadolibre.com.ar/MLA-1976434078-remera-adidas-tenis-climacool-hombre-azul-jn5730-_JM?searchVariation=186435042995&gallery_type=horizontal&sizeForPhoto=416&pdp_filters=official_store%3A964#polycard_client%3Drecommendations_recoview-selleritems-eshops%26reco_backend%3Dsame-seller-odin%26reco_client%3Drecoview-selleritems-eshops%26reco_item_pos%3D4%26reco_backend_type%3Dlow_level%26reco_id%3D736e1f39-a244-46b0-8910-e96c558bf8b9%26tracking_id%3D5de070570dcbf40998cdf6044360d33f%26source%3Deshops%26seller_id%3D652366401%26category_id%3DMLA417371",
-                "threshold_percentage": 10.0,
+                "threshold_percentage": 10,
                 "image": "remera_1.webp"
             },
             {
                 "url": "https://articulo.mercadolibre.com.ar/MLA-1464100801-remera-adidas-casual-essentials-hombre-azul-jf1093-_JM?searchVariation=186305546961&pdp_filters=official_store%3A964#polycard_client=search-desktop&searchVariation=186305546961&search_layout=grid&position=19&type=item&tracking_id=f5c10b83-4991-46ea-aa53-9f80eab32d43",
-                "threshold_percentage": 10.0,
+                "threshold_percentage": 10,
                 "image": "remera_2.webp"
-            }        ],
+            }
+        ],
         "Buzos": [
             {
                 "url": "https://articulo.mercadolibre.com.ar/MLA-1976431606-buzo-adidas-casual-essentials-french-terry-hombre-je6372-_JM?searchVariation=186434176115&pdp_filters=deal%3AMLA1511300-1#polycard_client=search-desktop&searchVariation=186434176115&search_layout=grid&position=15&type=item&tracking_id=fe45dd3a-0003-4183-b167-48f1a1d5b303",
-                "threshold_percentage": 10.0,
+                "threshold_percentage": 10,
                 "image": "buzo_1.webp"
             }
         ]
@@ -34,7 +34,7 @@
         "Shampoo": [
             {
                 "url": "https://www.mercadolibre.com.ar/promo--fans-de-kerastase--shampoo-bain-prevention-250-ml/up/MLAU3016247640?pdp_filters=item_id:MLA1476534899",
-                "threshold_percentage": 10.0,
+                "threshold_percentage": 10,
                 "image": "shampoo_1.webp"
             }
         ],
@@ -42,34 +42,34 @@
             "Faciales": [
                 {
                     "url": "https://www.mercadolibre.com.ar/combo-kit-vichy-mineral-89-50ml--mineral-89-contorno-ojos/up/MLAU141074309?pdp_filters=item_id:MLA853406854#polycard_client=wishlist&wid=MLA853406854&sid=bookmarks",
-                    "threshold_percentage": 10.0,
+                    "threshold_percentage": 10,
                     "image": "combo_vichy.webp"
                 },
                 {
                     "url": "https://www.mercadolibre.com.ar/gel-crema-hidratante-facial-piel-sensible-mixta-aveno-50g/p/MLA22990183?offer_type=OFFICIAL_STORE",
-                    "threshold_percentage": 10.0,
+                    "threshold_percentage": 10,
                     "image": "gel_crema_aveno.webp"
                 },
                 {
                     "url": "https://www.mercadolibre.com.ar/crema-de-dia-facial-eucerin-anti-pigment-antimanchas-50ml-beiersdorf/p/MLA18957819?pdp_filters=item_id:MLA1635383510#polycard_client=wishlist&wid=MLA1635383510&sid=bookmarks",
-                    "threshold_percentage": 10.0,
+                    "threshold_percentage": 10,
                     "image": "dia_eucerin_antipigment.webp"
                 },
                 {
                     "url": "https://www.mercadolibre.com.ar/crema-facial-de-noche-anti-pigment-50ml-eucerin/p/MLA9875449#polycard_client=recommendations_pdp-v2p&reco_backend=ranker_retrieval_online_vpp_v2p&reco_model=coldstart_low_exposition&reco_client=pdp-v2p&reco_item_pos=0&reco_backend_type=low_level&reco_id=10bebce7-057b-4615-8fcc-27d2ff93b642&wid=MLA1150188129&sid=recos",
-                    "threshold_percentage": 10.0,
+                    "threshold_percentage": 10,
                     "image": "noche_eucerin_antipigment.webp"
                 },
                 {
                     "url": "https://www.mercadolibre.com.ar/eucerin-anti-pigment-serum-dual-facial-antimanchas-x-30-ml/p/MLA14748197#polycard_client=recommendations_pdp-v2p&reco_backend=ranker_retrieval_online_vpp_v2p&reco_model=coldstart_low_exposition&reco_client=pdp-v2p&reco_item_pos=1&reco_backend_type=low_level&reco_id=10bebce7-057b-4615-8fcc-27d2ff93b642&wid=MLA1150897250&sid=recos",
-                    "threshold_percentage": 10.0,
+                    "threshold_percentage": 10,
                     "image": "serum_eucerin_antipigment.webp"
                 }
             ],
             "Corporales": [
                 {
                     "url": "https://www.mercadolibre.com.ar/p/MLA17331887#c_id=/home/navigation-history/element&c_uid=cdbf6f06-45ec-49e7-9d57-3ba523e33146",
-                    "threshold_percentage": 10.0,
+                    "threshold_percentage": 10,
                     "image": "corporal_1.webp"
                 }
             ]
@@ -77,19 +77,19 @@
         "Protector Solar": [
             {
                 "url": "https://www.mercadolibre.com.ar/la-roche-posay-anthelios-uvmune-400-oil-control-fluido-con-color-spf50-protector-solar-facial-50-ml/p/MLA23459911#polycard_client=search-nordic&search_layout=grid&position=2&type=product&tracking_id=35be27d1-e72c-4430-91bc-793bb47c027c&wid=MLA1520597027&sid=search",
-                "threshold_percentage": 10.0,
+                "threshold_percentage": 10,
                 "image": "anthelios_oil_control_con_color.webp"
             },
             {
                 "url": "https://www.mercadolibre.com.ar/anthelios-uv-mune-400-oil-control-fluid-50-ml-la-roche-posay/p/MLA23459913#polycard_client=search-nordic&search_layout=grid&position=1&type=product&tracking_id=35be27d1-e72c-4430-91bc-793bb47c027c&wid=MLA1435644381&sid=search",
-                "threshold_percentage": 10.0,
+                "threshold_percentage": 10,
                 "image": "anthelios_oil_control_sin_color.webp"
             }
         ],
         "Baño": [
             {
                 "url": "https://www.mercadolibre.com.ar/p/MLA20541310#c_id=/home/navigation-history/element&c_uid=1c126447-4752-43fc-9ad8-e8de9c59bf56",
-                "threshold_percentage": 10.0,
+                "threshold_percentage": 10,
                 "image": "gel_bano_corporal.webp"
             }
         ]
@@ -105,7 +105,7 @@
                 "https://www.mercadolibre.com.ar/teclado-partido-ergonomico-ergo-k860-logitech-color-del-teclado-negro-idioma-espanol/p/MLA18382593?pdp_filters=item_id%3AMLA1105472424&pdp_filters=official_store%3A182808#polycard_client%3Drecommendations_recoview-selleritems-eshops%26reco_backend%3Dsame-seller-odin%26wid%3DMLA1105472424%26reco_client%3Drecoview-selleritems-eshops%26reco_item_pos%3D0%26reco_backend_type%3Dlow_level%26reco_id%3Df85f16aa-0215-4811-8840-bb5e71332348%26sid%3Drecos%26tracking_id%3Dab52a515850b8de2efd0dc392a1249ac%26source%3Deshops%26seller_id%3D2347789%26category_id%3DMLA418448",
                 "https://www.mercadolibre.com.ar/teclado-partido-ergonomico-ergo-k860-logitech-color-del-teclado-negro-idioma-espanol/p/MLA18382593?pdp_filters=item_id%3AMLA1102693594&pdp_filters=official_store%3A86702#polycard_client%3Drecommendations_recoview-selleritems-eshops%26reco_backend%3Dsame-seller-odin%26wid%3DMLA1102693594%26reco_client%3Drecoview-selleritems-eshops%26reco_item_pos%3D0%26reco_backend_type%3Dlow_level%26reco_id%3D942fbacb-4902-43ca-8fe4-4323eb8a1407%26sid%3Drecos%26tracking_id%3D0c8f8b4b5e2690504dd0d5aa8a64f0f7%26source%3Deshops%26seller_id%3D91988078%26category_id%3DMLA418448"
             ],
-            "threshold_percentage": 10.0,
+            "threshold_percentage": 10,
             "image": "teclado_ergo_k860.webp"
         },
         {
@@ -117,7 +117,7 @@
                 "https://www.mercadolibre.com.ar/mouse-inalambrico-logitech-trackball-mx-ergo-s-color-gris/p/MLA43200795?pdp_filters=item_id%3AMLA2008632066&pdp_filters=official_store%3A110784#polycard_client%3Drecommendations_recoview-selleritems-eshops%26reco_backend%3Dsame-seller-odin%26wid%3DMLA2008632066%26reco_client%3Drecoview-selleritems-eshops%26reco_item_pos%3D0%26reco_backend_type%3Dlow_level%26reco_id%3Da7f4c0f5-a2e9-4dba-a395-62d53d94b647%26sid%3Drecos%26tracking_id%3D9b30b693dc3a34b10fcc02f474c26229%26source%3Deshops%26seller_id%3D82916233%26category_id%3DMLA1714",
                 "https://www.mercadolibre.com.ar/mouse-inalambrico-logitech-trackball-mx-ergo-s-color-gris/p/MLA43200795?pdp_filters=item_id%3AMLA3079538124&pdp_filters=official_store%3A312406#polycard_client%3Drecommendations_recoview-selleritems-eshops%26reco_backend%3Dsame-seller-odin%26wid%3DMLA3079538124%26reco_client%3Drecoview-selleritems-eshops%26reco_item_pos%3D0%26reco_backend_type%3Dlow_level%26reco_id%3D463c4a04-ff96-4575-93c5-81b8cbceb262%26sid%3Drecos%26tracking_id%3D2fc1813792f56d6213df3584ea3e62bc%26source%3Deshops%26seller_id%3D92152388%26category_id%3DMLA1714"
             ],
-            "threshold_percentage": 10.0,
+            "threshold_percentage": 10,
             "image": "mouse_ergo_caro.webp"
         },
         {
@@ -127,45 +127,44 @@
                 "https://www.mercadolibre.com.ar/mouse-trackball-inalambrico-ergo-m575-logitech-color-negro/p/MLA17451083#polycard_client=search-desktop&search_layout=grid&position=1&type=product&tracking_id=4be02e5d-3080-4c0b-aa9a-acfb360c774a&wid=MLA3160043286&sid=search",
                 "https://www.mercadolibre.com.ar/mouse-logitech-inalambrico-usb-y-bluetooth-con-rueda-de-desplazamiento/p/MLA29584190#polycard_client=search-desktop&search_layout=grid&position=4&type=product&tracking_id=4be02e5d-3080-4c0b-aa9a-acfb360c774a&wid=MLA3070630170&sid=search"
             ],
-            "threshold_percentage": 10.0,
+            "threshold_percentage": 10,
             "image": "mouse_ergo_barato.webp"
         }
     ],
     "Cosas": [
         {
             "url": "https://www.mercadolibre.com.ar/escudo-racing-club--cuadro-madera-calada--escudos-dep/up/MLAU3207154410?pdp_filters=item_id%3AMLA1500954725#polycard_client=wishlist&wid=MLA1500954725&sid=bookmarks",
-            "threshold_percentage": 10.0,
-            "image": "EscudoRacingClub.png"
+            "threshold_percentage": 10,
+            "image": "EscudoRacingClub.webp"
         }
     ],
     "Borgo": [
         {
             "url": "https://www.mercadolibre.com.ar/aceite-ypf-extra-vida-xv-300-x-20-lts-balde/p/MLA66735720?pdp_filters=item_id%3AMLA1720174385#polycard_client=wishlist&wid=MLA1720174385&sid=bookmarks",
-            "threshold_percentage": 10.0,
-            "image": "AceiteYPF.png"
+            "threshold_percentage": 10,
+            "image": "aceiteYPF.webp"
         }
     ],
     "Nora": [
         {
             "url": "https://www.mercadolibre.com.ar/p/MLA17331887#c_id=/home/navigation-history/element&c_uid=cdbf6f06-45ec-49e7-9d57-3ba523e33146",
-            "threshold_percentage": 10.0,
-            "image": "Nora1.png"
-
+            "threshold_percentage": 10,
+            "image": "Nora1.webp"
         },
         {
             "url": "https://www.mercadolibre.com.ar/p/MLA19866306#c_id=/home/navigation-history/element&c_uid=75a67935-53b8-4da3-a618-14ea9bebf12a",
-            "threshold_percentage": 10.0,
-            "image": "Nora2.png"
+            "threshold_percentage": 10,
+            "image": "Nora2.webp"
         },
         {
             "url": "https://www.mercadolibre.com.ar/p/MLA42586516#c_id=/home/navigation-history/element&c_uid=524bf221-fb28-4390-b706-5f6f5a2bf4c9",
-            "threshold_percentage": 10.0,
-            "image": "Nora3.png"
+            "threshold_percentage": 10,
+            "image": "Nora3.webp"
         },
         {
             "url": "https://www.mercadolibre.com.ar/p/MLA19504472#c_id=/home/navigation-history/element&c_uid=84c5cd67-ffe1-4b47-84ce-d1a3dea2100a",
-            "threshold_percentage": 10.0,
-            "image": "Nora4.png"
+            "threshold_percentage": 10,
+            "image": "Nora4.webp"
         }
     ]
 }
