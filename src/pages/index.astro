@@ -19,6 +19,7 @@ interface ProductConfig {
   categoryPath: string
   customName?: string
   thresholdPercentage?: number
+  image?: string
 }
 
 const getUrlId = (url: string): string => {
@@ -53,6 +54,7 @@ const loadProductsFromConfig = (filePath: string): ProductConfig[] => {
           url: val.url,
           categoryPath: path.join(" > "),
           thresholdPercentage: val.threshold_percentage,
+          image: val.image || undefined,
         })
         return
       }
@@ -65,6 +67,7 @@ const loadProductsFromConfig = (filePath: string): ProductConfig[] => {
             categoryPath: path.join(" > "),
             customName: val.name,
             thresholdPercentage: val.threshold_percentage,
+            image: val.image || undefined,
           })
         }
         return
@@ -133,11 +136,21 @@ try {
     const previous = points.length > 1 ? points.at(-2)! : null
     const config = configMap.get(asin)
 
+    let imageUrl = latest.imageUrl
+    if (config?.image) {
+      if (config.image.startsWith("http://") || config.image.startsWith("https://")) {
+        imageUrl = config.image
+      } else {
+        const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, "")
+        imageUrl = `${baseUrl}/products/${config.image}`
+      }
+    }
+
     return {
       asin,
       title: config?.customName || latest.title,
       url: latest.url,
-      imageUrl: latest.imageUrl,
+      imageUrl,
       currency: latest.currency,
       latestPrice: latest.price,
       previousPrice: previous?.price ?? null,

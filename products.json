@@ -4,7 +4,8 @@
             "Zapatillas Tracking": [
                 {
                     "url": "https://www.mercadolibre.com.ar/terrex-skychaser-ax5-gtx-jq2209-adidas/up/MLAU3180814840?pdp_filters=item_id%3AMLA2082821978#polycard_client=wishlist&wid=MLA2082821978&sid=bookmarks",
-                    "threshold_percentage": 10.0
+                    "threshold_percentage": 10.0,
+                    "image": "terrex.png"
                 },
                 {
                     "url": "https://articulo.mercadolibre.com.ar/MLA-2623307924-zapatillas-adidas-hiking-terrex-anylander-hombre-gris-jr6598-_JM?searchVariation=187664205202#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=2&reco_backend_type=function&reco_id=919769e1-d8b7-48af-a20d-35a3d0ea99f7&c_id=/home/navigation-recommendations/element&c_uid=31eddee1-9031-4520-9be6-9a4a15e884dd",

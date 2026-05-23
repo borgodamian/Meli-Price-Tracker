@@ -14,6 +14,7 @@ interface ProductConfig {
   categoryPath: string
   customName?: string
   thresholdPercentage?: number
+  image?: string
 }
 
 const loadProductsFromConfig = (filePath: string): ProductConfig[] => {
@@ -29,6 +30,7 @@ const loadProductsFromConfig = (filePath: string): ProductConfig[] => {
         url: val.url,
         categoryPath: path.join(" > "),
         thresholdPercentage: val.threshold_percentage,
+        image: val.image || undefined,
       })
       return
     }
@@ -40,6 +42,7 @@ const loadProductsFromConfig = (filePath: string): ProductConfig[] => {
           categoryPath: path.join(" > "),
           customName: val.name,
           thresholdPercentage: val.threshold_percentage,
+          image: val.image || undefined,
         })
       }
       return
@@ -79,6 +82,15 @@ const main = async () => {
       // Keep title custom name if configured
       if (product.customName && (!snapshot.title || snapshot.title === "Producto MercadoLibre")) {
         snapshot.title = product.customName
+      }
+      
+      // Override with manual image if configured
+      if (product.image) {
+        if (product.image.startsWith("http://") || product.image.startsWith("https://")) {
+          snapshot.imageUrl = product.image
+        } else {
+          snapshot.imageUrl = `/products/${product.image}`
+        }
       }
       
       // Get latest snapshot to compare price before saving the new one
