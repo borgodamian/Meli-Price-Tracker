@@ -416,9 +416,16 @@ const delta = (a: number | null, b: number | null) =>
           </div>
         ) : (
           <>
-            {topLevelCategories.map((cat) => (
-              <CategoryNode category={cat} level={0} colorMap={colorMap} />
-            ))}
+            <div class="categories-grid">
+              {topLevelCategories.map((cat) => {
+                const isLarge = cat.totalCount > 4 || cat.subcategories.length > 0;
+                return (
+                  <div class={isLarge ? "category-wrapper span-2" : "category-wrapper"}>
+                    <CategoryNode category={cat} level={0} colorMap={colorMap} />
+                  </div>
+                );
+              })}
+            </div>
 
             <section class="chart-section animate-slide-up">
               <div class="chart-header-row">
@@ -784,6 +791,31 @@ const delta = (a: number | null, b: number | null) =>
 
   .animate-slide-up {
     animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    margin-bottom: 2.5rem;
+  }
+
+  .category-wrapper {
+    grid-column: span 1;
+  }
+
+  .category-wrapper.span-2 {
+    grid-column: span 2;
+  }
+
+  @media (max-width: 900px) {
+    .categories-grid {
+      grid-template-columns: 1fr;
+    }
+    .category-wrapper, .category-wrapper.span-2 {
+      grid-column: span 1;
+    }
   }
 
   @media (max-width: 768px) {

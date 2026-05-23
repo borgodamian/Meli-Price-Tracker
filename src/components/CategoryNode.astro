@@ -166,7 +166,6 @@ const delta = (a: number | null, b: number | null) =>
 
 <style>
   .category-node {
-    margin-bottom: 2.5rem;
     transition: all 0.3s ease;
   }
 
@@ -177,10 +176,11 @@ const delta = (a: number | null, b: number | null) =>
     padding: 1.75rem;
     backdrop-filter: blur(12px);
     box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+    height: 100%;
   }
 
-  .category-node.level-0:not(:last-child) {
-    margin-bottom: 3.5rem;
+  .category-node:not(.level-0) {
+    margin-bottom: 1.5rem;
   }
 
   /* --- Details/Summary --- */
