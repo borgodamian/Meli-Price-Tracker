@@ -14,10 +14,11 @@ process.env.TURSO_AUTH_TOKEN ??= import.meta.env.TURSO_AUTH_TOKEN
 
 // Config loader
 interface ProductConfig {
-  id: string
-  url: string
+  groupId: string
+  name?: string
+  urls: string[]
+  asins: string[]
   categoryPath: string
-  customName?: string
   thresholdPercentage?: number
   image?: string
 }
@@ -49,9 +50,12 @@ const loadProductsFromConfig = (filePath: string): ProductConfig[] => {
       if (!val || typeof val !== "object") return
 
       if (typeof val.url === "string") {
+        const id = getUrlId(val.url)
         products.push({
-          id: getUrlId(val.url),
-          url: val.url,
+          groupId: id,
+          name: val.name,
+          urls: [val.url],
+          asins: [id],
           categoryPath: path.join(" > "),
           thresholdPercentage: val.threshold_percentage,
           image: val.image || undefined,
@@ -60,16 +64,17 @@ const loadProductsFromConfig = (filePath: string): ProductConfig[] => {
       }
 
       if (Array.isArray(val.urls) && val.urls.every((u: any) => typeof u === "string")) {
-        for (const u of val.urls) {
-          products.push({
-            id: getUrlId(u),
-            url: u,
-            categoryPath: path.join(" > "),
-            customName: val.name,
-            thresholdPercentage: val.threshold_percentage,
-            image: val.image || undefined,
-          })
-        }
+        const asins = val.urls.map((u: string) => getUrlId(u))
+        const groupId = `group_${crypto.createHash("md5").update(val.name || asins[0]).digest("hex").substring(0, 10).toUpperCase()}`
+        products.push({
+          groupId,
+          name: val.name,
+          urls: val.urls,
+          asins,
+          categoryPath: path.join(" > "),
+          thresholdPercentage: val.threshold_percentage,
+          image: val.image || undefined,
+        })
         return
       }
 
@@ -94,7 +99,6 @@ const loadProductsFromConfig = (filePath: string): ProductConfig[] => {
 
 const configPath = join(process.cwd(), "products.json")
 const configProducts = loadProductsFromConfig(configPath)
-const configMap = new Map(configProducts.map((p) => [p.id, p]))
 
 type ProductSummary = {
   asin: string
@@ -113,31 +117,79 @@ type ProductSummary = {
   lastSeen: string
   categoryPath: string
   customName: string | null
+  historyPoints: { price: number; scrapedAt: string }[]
 }
 
 let allPoints: PriceRow[] = []
 let products: ProductSummary[] = []
 let chartError: string | null = null
 
+const getGroupHistory = (asins: string[], allPointsForGroup: PriceRow[]) => {
+  const sortedPoints = [...allPointsForGroup].sort(
+    (a, b) => new Date(a.scrapedAt).getTime() - new Date(b.scrapedAt).getTime()
+  )
+  const latestPrices = new Map<string, number>()
+  const aggregatedHistory: { price: number; scrapedAt: string }[] = []
+
+  for (const pt of sortedPoints) {
+    if (pt.price !== null) {
+      latestPrices.set(pt.asin, pt.price)
+    }
+    const currentPrices = Array.from(latestPrices.values())
+    if (currentPrices.length > 0) {
+      const minPrice = Math.min(...currentPrices)
+      aggregatedHistory.push({
+        price: minPrice,
+        scrapedAt: pt.scrapedAt,
+      })
+    }
+  }
+  return aggregatedHistory
+}
+
 try {
   const { getAllSnapshots } = await import("../db/queries.js")
   allPoints = await getAllSnapshots()
 
-  const grouped = new Map<string, PriceRow[]>()
+  const groupedByAsin = new Map<string, PriceRow[]>()
   for (const point of allPoints) {
-    const list = grouped.get(point.asin) ?? []
+    const list = groupedByAsin.get(point.asin) ?? []
     list.push(point)
-    grouped.set(point.asin, list)
+    groupedByAsin.set(point.asin, list)
   }
 
-  products = [...grouped.entries()].map(([asin, points]) => {
-    const prices = points.map((p) => p.price)
-    const latest = points.at(-1)!
-    const previous = points.length > 1 ? points.at(-2)! : null
-    const config = configMap.get(asin)
+  const coveredAsins = new Set<string>()
+  for (const config of configProducts) {
+    for (const asin of config.asins) {
+      coveredAsins.add(asin)
+    }
+  }
 
-    let imageUrl = latest.imageUrl
-    if (config?.image) {
+  // Build products for configured groups
+  const configuredProducts = configProducts.map((config) => {
+    const groupPoints = allPoints.filter(p => config.asins.includes(p.asin))
+    if (groupPoints.length === 0) return null
+
+    // Get aggregated history (minimum price over time)
+    const historyPoints = getGroupHistory(config.asins, groupPoints)
+
+    // Get latest snapshot for each ASIN in the group to compute current state
+    const latestSnapshots = config.asins.map(asin => {
+      const pts = groupedByAsin.get(asin)
+      return pts ? pts.at(-1) : null
+    }).filter((s): s is PriceRow => s !== null)
+
+    const cheapestSnapshot = latestSnapshots
+      .filter(s => s.price !== null)
+      .sort((a, b) => a.price! - b.price!)[0] || latestSnapshots[0]
+
+    const latestPrice = historyPoints.length > 0 ? historyPoints.at(-1)!.price : null
+    const previousPrice = historyPoints.length > 1 ? historyPoints.at(-2)!.price : null
+
+    const prices = historyPoints.map(h => h.price)
+
+    let imageUrl = cheapestSnapshot?.imageUrl || null
+    if (config.image) {
       if (config.image.startsWith("http://") || config.image.startsWith("https://")) {
         imageUrl = config.image
       } else {
@@ -146,25 +198,62 @@ try {
       }
     }
 
+    const hasStock = latestSnapshots.some(s => s.availability === "En stock")
+    const maxScrapedAt = new Date(Math.max(...latestSnapshots.map(s => new Date(s.scrapedAt).getTime()))).toISOString()
+
     return {
-      asin,
-      title: config?.customName || latest.title,
-      url: latest.url,
+      asin: config.groupId,
+      title: config.name || cheapestSnapshot?.title || "Producto",
+      url: cheapestSnapshot?.url || config.urls[0],
       imageUrl,
-      currency: latest.currency,
-      latestPrice: latest.price,
-      previousPrice: previous?.price ?? null,
+      currency: cheapestSnapshot?.currency || "ARS",
+      latestPrice,
+      previousPrice,
       minPrice: Math.min(...prices),
       maxPrice: Math.max(...prices),
-      availability: latest.availability,
-      rating: latest.rating,
-      reviewsCount: latest.reviewsCount,
-      snapshots: points.length,
-      lastSeen: latest.scrapedAt,
-      categoryPath: config?.categoryPath || "Otros",
-      customName: config?.customName || null,
+      availability: hasStock ? "En stock" : "Sin stock",
+      rating: cheapestSnapshot?.rating || null,
+      reviewsCount: cheapestSnapshot?.reviewsCount || null,
+      snapshots: groupPoints.length,
+      lastSeen: maxScrapedAt,
+      categoryPath: config.categoryPath || "Otros",
+      customName: config.name || null,
+      historyPoints
     }
-  })
+  }).filter((p): p is ProductSummary => p !== null)
+
+  // Build products for unconfigured ASINs
+  const unconfiguredProducts = Array.from(groupedByAsin.entries())
+    .filter(([asin]) => !coveredAsins.has(asin))
+    .map(([asin, points]) => {
+      const prices = points.map((p) => p.price)
+      const latest = points.at(-1)!
+      const previous = points.length > 1 ? points.at(-2)! : null
+
+      const historyPoints = points.map(pt => ({ price: pt.price, scrapedAt: pt.scrapedAt }))
+
+      return {
+        asin,
+        title: latest.title,
+        url: latest.url,
+        imageUrl: latest.imageUrl,
+        currency: latest.currency,
+        latestPrice: latest.price,
+        previousPrice: previous?.price ?? null,
+        minPrice: Math.min(...prices),
+        maxPrice: Math.max(...prices),
+        availability: latest.availability,
+        rating: latest.rating,
+        reviewsCount: latest.reviewsCount,
+        snapshots: points.length,
+        lastSeen: latest.scrapedAt,
+        categoryPath: "Otros",
+        customName: null,
+        historyPoints
+      }
+    })
+
+  products = [...configuredProducts, ...unconfiguredProducts]
 } catch (error) {
   chartError = error instanceof Error ? error.message : "Error de conexión"
 }
@@ -220,27 +309,22 @@ const topLevelCategories: CategoryGroup[] = Array.from(rootBuilder.subcategories
 
 // --- Chart data ---
 const trackedAsins = products.map((p) => p.asin)
-const groupedByAsin = new Map<string, PriceRow[]>()
-for (const point of allPoints) {
-  const list = groupedByAsin.get(point.asin) ?? []
-  list.push(point)
-  groupedByAsin.set(point.asin, list)
-}
 
 // Sleek color palette for lines
 const palette = ["#FFF159", "#3b82f6", "#10b981", "#ec4899", "#8b5cf6", "#f97316", "#06b6d4", "#84cc16"]
 const colorMap = new Map(trackedAsins.map((asin, i) => [asin, palette[i % palette.length]]))
 
-const allPrices = allPoints.map((p) => p.price)
-const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0
-const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 0
+// Collect all aggregated group prices and dates
+const allGroupPrices = products.flatMap(p => p.historyPoints.map(pt => pt.price))
+const minPrice = allGroupPrices.length > 0 ? Math.min(...allGroupPrices) : 0
+const maxPrice = allGroupPrices.length > 0 ? Math.max(...allGroupPrices) : 0
 const margin = (maxPrice - minPrice) * 0.1 || 1
 const yMin = minPrice - margin
 const yMax = maxPrice + margin
 
-const allDates = allPoints.map((p) => new Date(p.scrapedAt).getTime())
-const minDate = allDates.length > 0 ? Math.min(...allDates) : 0
-const maxDate = allDates.length > 0 ? Math.max(...allDates) : 0
+const allGroupDates = products.flatMap(p => p.historyPoints.map(pt => new Date(pt.scrapedAt).getTime()))
+const minDate = allGroupDates.length > 0 ? Math.min(...allGroupDates) : 0
+const maxDate = allGroupDates.length > 0 ? Math.max(...allGroupDates) : 0
 
 const W = 900
 const H = 340
@@ -256,20 +340,20 @@ const y = (p: number) => yMax === yMin ? PT + PH / 2 : PT + ((yMax - p) / (yMax 
 
 const yTicks = Array.from({ length: 5 }, (_, i) => yMax - (i / 4) * (yMax - yMin))
 
-const uniqueDays = [...new Set(allPoints.map((p) => p.scrapedAt.slice(0, 10)))]
+const uniqueDays = [...new Set(products.flatMap(p => p.historyPoints.map(pt => pt.scrapedAt.slice(0, 10))))]
 const xTickCount = Math.min(6, uniqueDays.length)
-const xStep = allDates.length > 1 ? (maxDate - minDate) / Math.max(xTickCount - 1, 1) : 0
+const xStep = allGroupDates.length > 1 ? (maxDate - minDate) / Math.max(xTickCount - 1, 1) : 0
 const xTicks = Array.from({ length: xTickCount }, (_, i) => {
   const ts = minDate + i * xStep
   return { x: x(ts), label: new Date(ts).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) }
 })
 
-const series = trackedAsins.map((asin) => {
-  const pts = groupedByAsin.get(asin) ?? []
+const series = products.map((prod) => {
+  const pts = prod.historyPoints
   const d = pts
     .map((p, i) => `${i === 0 ? "M" : "L"}${x(new Date(p.scrapedAt).getTime()).toFixed(1)} ${y(p.price).toFixed(1)}`)
     .join(" ")
-  return { asin, pts, d, color: colorMap.get(asin)! }
+  return { asin: prod.asin, pts, d, color: colorMap.get(prod.asin)! }
 })
 
 // Formatting helper
