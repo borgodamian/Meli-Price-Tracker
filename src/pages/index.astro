@@ -1,0 +1,736 @@
+---
+import Layout from "../layouts/Layout.astro"
+import type { PriceRow } from "../db/queries.js"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+import crypto from "crypto"
+import CategoryNode from "../components/CategoryNode.astro"
+import type { CategoryGroup } from "../components/CategoryNode.astro"
+
+
+// Astro/Vite loads .env into import.meta.env
+process.env.TURSO_DATABASE_URL ??= import.meta.env.TURSO_DATABASE_URL
+process.env.TURSO_AUTH_TOKEN ??= import.meta.env.TURSO_AUTH_TOKEN
+
+// Config loader
+interface ProductConfig {
+  id: string
+  url: string
+  categoryPath: string
+  customName?: string
+  thresholdPercentage?: number
+}
+
+const getUrlId = (url: string): string => {
+  const filterMatch = url.match(/item_id(?:%3A|=)(MLA\d+)/i)
+  if (filterMatch) return filterMatch[1].toUpperCase()
+
+  const upMatch = url.match(/\/up\/(MLAU?\d+)/i)
+  if (upMatch) return upMatch[1].toUpperCase()
+
+  const pMatch = url.match(/\/p\/(MLAU?\d+)/i)
+  if (pMatch) return pMatch[1].toUpperCase()
+
+  const m = url.match(/(MLA-?\d+)/i)
+  if (m) return m[1].replace("-", "").toUpperCase()
+
+  const hash = crypto.createHash("md5").update(url).digest("hex").substring(0, 10).toUpperCase()
+  return `MLI${hash}`
+}
+
+const loadProductsFromConfig = (filePath: string): ProductConfig[] => {
+  try {
+    const fileContent = readFileSync(filePath, "utf-8")
+    const data = JSON.parse(fileContent)
+    const products: ProductConfig[] = []
+
+    const traverse = (val: any, path: string[]) => {
+      if (!val || typeof val !== "object") return
+
+      if (typeof val.url === "string") {
+        products.push({
+          id: getUrlId(val.url),
+          url: val.url,
+          categoryPath: path.join(" > "),
+          thresholdPercentage: val.threshold_percentage,
+        })
+        return
+      }
+
+      if (Array.isArray(val.urls) && val.urls.every((u: any) => typeof u === "string")) {
+        for (const u of val.urls) {
+          products.push({
+            id: getUrlId(u),
+            url: u,
+            categoryPath: path.join(" > "),
+            customName: val.name,
+            thresholdPercentage: val.threshold_percentage,
+          })
+        }
+        return
+      }
+
+      if (Array.isArray(val)) {
+        for (const item of val) {
+          traverse(item, path)
+        }
+        return
+      }
+
+      for (const [key, value] of Object.entries(val)) {
+        traverse(value, [...path, key])
+      }
+    }
+
+    traverse(data, [])
+    return products
+  } catch (e) {
+    return []
+  }
+}
+
+const configPath = join(process.cwd(), "products.json")
+const configProducts = loadProductsFromConfig(configPath)
+const configMap = new Map(configProducts.map((p) => [p.id, p]))
+
+type ProductSummary = {
+  asin: string
+  title: string | null
+  url: string | null
+  imageUrl: string | null
+  currency: string | null
+  latestPrice: number | null
+  previousPrice: number | null
+  minPrice: number
+  maxPrice: number
+  availability: string | null
+  rating: number | null
+  reviewsCount: number | null
+  snapshots: number
+  lastSeen: string
+  categoryPath: string
+  customName: string | null
+}
+
+let allPoints: PriceRow[] = []
+let products: ProductSummary[] = []
+let chartError: string | null = null
+
+try {
+  const { getAllSnapshots } = await import("../db/queries.js")
+  allPoints = await getAllSnapshots()
+
+  const grouped = new Map<string, PriceRow[]>()
+  for (const point of allPoints) {
+    const list = grouped.get(point.asin) ?? []
+    list.push(point)
+    grouped.set(point.asin, list)
+  }
+
+  products = [...grouped.entries()].map(([asin, points]) => {
+    const prices = points.map((p) => p.price)
+    const latest = points.at(-1)!
+    const previous = points.length > 1 ? points.at(-2)! : null
+    const config = configMap.get(asin)
+
+    return {
+      asin,
+      title: config?.customName || latest.title,
+      url: latest.url,
+      imageUrl: latest.imageUrl,
+      currency: latest.currency,
+      latestPrice: latest.price,
+      previousPrice: previous?.price ?? null,
+      minPrice: Math.min(...prices),
+      maxPrice: Math.max(...prices),
+      availability: latest.availability,
+      rating: latest.rating,
+      reviewsCount: latest.reviewsCount,
+      snapshots: points.length,
+      lastSeen: latest.scrapedAt,
+      categoryPath: config?.categoryPath || "Otros",
+      customName: config?.customName || null,
+    }
+  })
+} catch (error) {
+  chartError = error instanceof Error ? error.message : "Error de conexión"
+}
+
+// Build recursive Category Tree (Hierarchical)
+interface CategoryTreeBuilder {
+  name: string
+  subcategories: Map<string, CategoryTreeBuilder>
+  products: ProductSummary[]
+}
+
+const rootBuilder: CategoryTreeBuilder = {
+  name: "Root",
+  subcategories: new Map(),
+  products: []
+}
+
+for (const prod of products) {
+  const parts = prod.categoryPath.split(" > ")
+  let current = rootBuilder
+  for (const part of parts) {
+    if (!current.subcategories.has(part)) {
+      current.subcategories.set(part, {
+        name: part,
+        subcategories: new Map(),
+        products: []
+      })
+    }
+    current = current.subcategories.get(part)!
+  }
+  current.products.push(prod)
+}
+
+const convertToGroup = (name: string, builderNode: CategoryTreeBuilder): CategoryGroup => {
+  const subcategories = Array.from(builderNode.subcategories.entries())
+    .map(([subName, subNode]) => convertToGroup(subName, subNode))
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  const products = [...builderNode.products]
+  const totalCount = products.length + subcategories.reduce((acc, sub) => acc + sub.totalCount, 0)
+
+  return {
+    name,
+    subcategories,
+    products,
+    totalCount
+  }
+}
+
+const topLevelCategories: CategoryGroup[] = Array.from(rootBuilder.subcategories.entries())
+  .map(([name, subNode]) => convertToGroup(name, subNode))
+  .sort((a, b) => a.name.localeCompare(b.name))
+
+// --- Chart data ---
+const trackedAsins = products.map((p) => p.asin)
+const groupedByAsin = new Map<string, PriceRow[]>()
+for (const point of allPoints) {
+  const list = groupedByAsin.get(point.asin) ?? []
+  list.push(point)
+  groupedByAsin.set(point.asin, list)
+}
+
+// Sleek color palette for lines
+const palette = ["#FFF159", "#3b82f6", "#10b981", "#ec4899", "#8b5cf6", "#f97316", "#06b6d4", "#84cc16"]
+const colorMap = new Map(trackedAsins.map((asin, i) => [asin, palette[i % palette.length]]))
+
+const allPrices = allPoints.map((p) => p.price)
+const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0
+const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 0
+const margin = (maxPrice - minPrice) * 0.1 || 1
+const yMin = minPrice - margin
+const yMax = maxPrice + margin
+
+const allDates = allPoints.map((p) => new Date(p.scrapedAt).getTime())
+const minDate = allDates.length > 0 ? Math.min(...allDates) : 0
+const maxDate = allDates.length > 0 ? Math.max(...allDates) : 0
+
+const W = 900
+const H = 340
+const PL = 72
+const PR = 20
+const PT = 20
+const PB = 44
+const PW = W - PL - PR
+const PH = H - PT - PB
+
+const x = (ts: number) => maxDate === minDate ? PL + PW / 2 : PL + ((ts - minDate) / (maxDate - minDate)) * PW
+const y = (p: number) => yMax === yMin ? PT + PH / 2 : PT + ((yMax - p) / (yMax - yMin)) * PH
+
+const yTicks = Array.from({ length: 5 }, (_, i) => yMax - (i / 4) * (yMax - yMin))
+
+const uniqueDays = [...new Set(allPoints.map((p) => p.scrapedAt.slice(0, 10)))]
+const xTickCount = Math.min(6, uniqueDays.length)
+const xStep = allDates.length > 1 ? (maxDate - minDate) / Math.max(xTickCount - 1, 1) : 0
+const xTicks = Array.from({ length: xTickCount }, (_, i) => {
+  const ts = minDate + i * xStep
+  return { x: x(ts), label: new Date(ts).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) }
+})
+
+const series = trackedAsins.map((asin) => {
+  const pts = groupedByAsin.get(asin) ?? []
+  const d = pts
+    .map((p, i) => `${i === 0 ? "M" : "L"}${x(new Date(p.scrapedAt).getTime()).toFixed(1)} ${y(p.price).toFixed(1)}`)
+    .join(" ")
+  return { asin, pts, d, color: colorMap.get(asin)! }
+})
+
+// Formatting helper
+const fmt = (price: number | null, currency: string | null = "ARS") => {
+  if (price === null) return "—"
+  const formatted = price.toLocaleString("es-AR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
+  const symbol = currency === "ARS" || currency === "$" ? "$" : (currency || "$")
+  return `${symbol} ${formatted}`
+}
+
+const fmtDate = (s: string) => new Date(s).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+const delta = (a: number | null, b: number | null) =>
+  a != null && b != null && b !== 0 ? ((a - b) / b) * 100 : null
+---
+
+<Layout title="Meli Price Tracker | Monitoreo de Precios">
+  <main class="page">
+    <header class="top">
+      <div class="brand">
+        <div class="logo-box">
+          <span class="logo-text">Meli</span>
+          <span class="logo-badge">Price Tracker</span>
+        </div>
+        <p class="tagline">Seguimiento inteligente de precios de MercadoLibre en tiempo real</p>
+      </div>
+
+      {products.length > 0 && (
+        <div class="stats-bar animate-fade-in">
+          <div class="stat-card">
+            <span class="stat-num">{products.length}</span>
+            <span class="stat-lbl">Productos</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num">{allPoints.length}</span>
+            <span class="stat-lbl">Registros</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num">{uniqueDays.length}</span>
+            <span class="stat-lbl">Días</span>
+          </div>
+        </div>
+      )}
+    </header>
+
+    {chartError ? (
+      <div class="notice">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-warning"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>{chartError}</span>
+      </div>
+    ) : (
+      <>
+        {products.length === 0 ? (
+          <div class="notice empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-box"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            <h3>No se encontraron registros de precios</h3>
+            <p>Ejecutá <code>npm run track</code> para realizar el primer rastreo de productos.</p>
+          </div>
+        ) : (
+          <>
+            {topLevelCategories.map((cat) => (
+              <CategoryNode category={cat} level={0} colorMap={colorMap} />
+            ))}
+
+            <section class="chart-section animate-slide-up">
+              <div class="chart-header-row">
+                <div class="chart-header-left">
+                  <h2>Evolución histórica de precios</h2>
+                  <p class="subtitle">Gráfico interactivo de precios de productos monitoreados</p>
+                </div>
+                <div class="legend">
+                  {series.map((s) => {
+                    const item = products.find(p => p.asin === s.asin)
+                    return (
+                      <span class="legend-item" title={item?.title || ""}>
+                        <span class="dot" style={`background:${s.color}; box-shadow: 0 0 6px ${s.color}`} />
+                        {item?.customName || s.asin}
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div class="chart" id="chart-container">
+                <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Historial de precios de MercadoLibre">
+                  {yTicks.map((v) => (
+                    <g>
+                      <line x1={PL} y1={y(v)} x2={W - PR} y2={y(v)} class="grid" />
+                      <text x={PL - 10} y={y(v) + 4} class="label" text-anchor="end">{fmt(v, "ARS")}</text>
+                    </g>
+                  ))}
+
+                  {xTicks.map((t) => (
+                    <text x={t.x} y={H - PB + 22} class="label" text-anchor="middle">{t.label}</text>
+                  ))}
+
+                  {series.map((s) => (
+                    <path d={s.d} fill="none" stroke={s.color} stroke-width="2.5" stroke-linejoin="round" class="chart-line" />
+                  ))}
+
+                  {series.map((s) =>
+                    s.pts.map((pt) => (
+                      <circle
+                        cx={x(new Date(pt.scrapedAt).getTime())}
+                        cy={y(pt.price)}
+                        r="4.5"
+                        fill={s.color}
+                        class="point"
+                        data-price={fmt(pt.price, pt.currency)}
+                        data-date={new Date(pt.scrapedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit" }) + "hs"}
+                        data-name={products.find(p => p.asin === s.asin)?.title || s.asin}
+                        data-color={s.color}
+                      />
+                    ))
+                  )}
+                </svg>
+                <div class="tooltip" id="chart-tooltip"></div>
+              </div>
+            </section>
+          </>
+        )}
+      </>
+    )}
+  </main>
+</Layout>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #0b0c10;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(255, 241, 89, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.03) 0px, transparent 50%);
+    color: #f1f5f9;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+
+  .page {
+    max-width: 1150px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 6rem;
+  }
+
+  /* --- Top / Header --- */
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 3.5rem;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .brand {
+    flex: 1;
+  }
+
+  .logo-box {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .logo-text {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #fff;
+    background: linear-gradient(135deg, #fff 40%, #FFF159 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .logo-badge {
+    background: linear-gradient(135deg, #FFF159 0%, #d4c200 100%);
+    color: #1a1900;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+    margin-top: 0.3rem;
+  }
+
+  .tagline {
+    margin: 0.5rem 0 0;
+    font-size: 0.95rem;
+    color: #94a3b8;
+    font-weight: 400;
+  }
+
+  /* --- Stats bar --- */
+  .stats-bar {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 0.8rem 1.5rem;
+    text-align: center;
+    min-width: 100px;
+    backdrop-filter: blur(10px);
+  }
+
+  .stat-num {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #FFF159;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .stat-lbl {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.05em;
+    margin-top: 0.2rem;
+  }
+
+
+
+  /* --- Chart Section --- */
+  .chart-section {
+    background: rgba(30, 41, 59, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 20px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+    margin-top: 1rem;
+  }
+
+  .chart-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .chart-section h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem;
+    color: #fff;
+  }
+
+  .chart-section .subtitle {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0;
+  }
+
+  .legend {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .legend-item .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .chart {
+    position: relative;
+    border-radius: 12px;
+    overflow: visible;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .grid {
+    stroke: rgba(255, 255, 255, 0.035);
+    stroke-width: 1;
+  }
+
+  .label {
+    fill: #475569;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .chart-line {
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+    transition: stroke-width 0.15s;
+  }
+
+  .point {
+    cursor: pointer;
+    transition: r 0.1s ease;
+  }
+
+  .point:hover {
+    r: 7;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: #FFF159;
+    color: #0b0c10;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.4rem 0.7rem;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 241, 89, 0.3);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 100ms ease;
+    transform: translate(-50%, -100%);
+    margin-top: -12px;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid #e1d000;
+  }
+
+  .tooltip.visible {
+    opacity: 1;
+  }
+
+  /* --- Alerts / Notices --- */
+  .notice {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1.2rem;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px dashed rgba(239, 68, 68, 0.2);
+    border-radius: 12px;
+    color: #f87171;
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+
+  .icon-warning {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    flex-direction: column;
+    text-align: center;
+    padding: 3.5rem 2rem;
+    background: rgba(30, 41, 59, 0.15);
+    border: 1px dashed rgba(255, 255, 255, 0.06);
+    color: #64748b;
+    gap: 0.5rem;
+  }
+
+  .empty-state h3 {
+    margin: 0.8rem 0 0;
+    color: #cbd5e1;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .empty-state p {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  .empty-state code {
+    background: rgba(0, 0, 0, 0.3);
+    color: #FFF159;
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .icon-box {
+    width: 42px;
+    height: 42px;
+    color: #3b82f6;
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+  }
+
+  /* --- Keyframes & Animations --- */
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @media (max-width: 768px) {
+    .top { flex-direction: column; align-items: stretch; margin-bottom: 2rem; }
+    .stats-bar { justify-content: space-between; }
+    .chart-header-row { flex-direction: column; align-items: flex-start; }
+    .legend { margin-top: 0.5rem; }
+    .subcategory-wrapper { padding-left: 0; border-left: none; }
+  }
+</style>
+
+<script>
+  const container = document.getElementById("chart-container")
+  const tooltip = document.getElementById("chart-tooltip")
+  if (container && tooltip) {
+    const svg = container.querySelector("svg")!
+    const points = container.querySelectorAll<SVGCircleElement>(".point")
+
+    points.forEach((point) => {
+      point.addEventListener("mouseenter", () => {
+        const price = point.dataset.price
+        const date = point.dataset.date
+        const name = point.dataset.name
+        const color = point.dataset.color || "#FFF159"
+        
+        tooltip.innerHTML = `<span style="font-size:0.65rem; opacity:0.8; display:block; font-weight:500; color:#3f3f46; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px">${name}</span><strong>${price}</strong> <span style="font-weight:500; font-size:0.65rem; color:#4b5563">(${date})</span>`
+        tooltip.style.borderColor = color
+        tooltip.classList.add("visible")
+
+        const svgRect = svg.getBoundingClientRect()
+        const viewBox = svg.viewBox.baseVal
+        const cx = parseFloat(point.getAttribute("cx")!)
+        const cy = parseFloat(point.getAttribute("cy")!)
+
+        const px = (cx / viewBox.width) * svgRect.width
+        const py = (cy / viewBox.height) * svgRect.height
+
+        tooltip.style.left = `${px}px`
+        tooltip.style.top = `${py}px`
+      })
+
+      point.addEventListener("mouseleave", () => {
+        tooltip.classList.remove("visible")
+      })
+    })
+  }
+</script>

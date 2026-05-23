@@ -1,0 +1,26 @@
+{
+  "name": "decodo-video",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "track": "tsx src/tracker/index.ts",
+    "track:manual": "tsx src/tracker/manual-scraper.ts",
+    "track:proxy": "tsx src/tracker/proxy-scraper.ts"
+  },
+  "dependencies": {
+    "@libsql/client": "0.15.15",
+    "astro": "6.2.1",
+    "dotenv": "17.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "tsx": "4.20.6"
+  }
+}
