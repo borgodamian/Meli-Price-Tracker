@@ -5,8 +5,9 @@ loadEnvFileIfPresent()
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { initDb } from "../db/schema.js"
-import { saveSnapshot } from "../db/queries.js"
+import { saveSnapshot, getHistoryByAsin } from "../db/queries.js"
 import { scrapeProduct } from "./scraper.js"
+import { sendPriceAlert } from "./mailer.js"
 
 interface ProductConfig {
   url: string
@@ -80,9 +81,37 @@ const main = async () => {
         snapshot.title = product.customName
       }
       
+      // Get latest snapshot to compare price before saving the new one
+      const history = await getHistoryByAsin(snapshot.asin)
+      const latestSnapshot = history.length > 0 ? history.at(-1) : null
+
       await saveSnapshot(snapshot)
 
-      console.log(`  -> OK: ID=${snapshot.asin} | ${snapshot.title} | Precio=${snapshot.price} ${snapshot.currency} | ${snapshot.availability}\n`)
+      console.log(`  -> OK: ID=${snapshot.asin} | ${snapshot.title} | Precio=${snapshot.price} ${snapshot.currency} | ${snapshot.availability}`)
+
+      if (latestSnapshot && latestSnapshot.price !== null && snapshot.price !== null) {
+        const oldPrice = latestSnapshot.price
+        const newPrice = snapshot.price
+
+        if (newPrice < oldPrice) {
+          const dropPct = ((oldPrice - newPrice) / oldPrice) * 100
+          const threshold = product.thresholdPercentage ?? 10.0
+          if (dropPct >= threshold) {
+            console.log(`  -> Umbral alcanzado: ${dropPct.toFixed(1)}% de baja (Umbral: ${threshold}%). Enviando alerta...`)
+            await sendPriceAlert(
+              snapshot.title || "Producto MercadoLibre",
+              product.url,
+              oldPrice,
+              newPrice,
+              snapshot.currency || "ARS",
+              threshold
+            )
+          } else {
+            console.log(`  -> Baja detectada de ${dropPct.toFixed(1)}% (inferior al umbral del ${threshold}%).`)
+          }
+        }
+      }
+      console.log("")
     } catch (error) {
       console.error(`  -> ERROR: ${error instanceof Error ? error.message : "Error desconocido"}\n`)
     }

@@ -1,0 +1,39 @@
+name: MercadoLibre Price Tracker Cron
+
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+  workflow_dispatch: # Allows manual triggers from GitHub UI
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tracker
+        run: npm run track
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_PASSWORD: ${{ secrets.GMAIL_PASSWORD }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+
+      - name: Commit and push changes (SQLite database update)
+        if: env.TURSO_DATABASE_URL == ''
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add local.db || true
+          git commit -m "chore: auto-update local.db [skip ci]" || true
+          git push || true
