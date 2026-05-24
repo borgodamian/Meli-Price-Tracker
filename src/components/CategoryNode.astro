@@ -81,6 +81,11 @@ const delta = (a: number | null, b: number | null) =>
           {category.products.map((p) => {
             const d = delta(p.latestPrice, p.previousPrice)
             const color = colorMap.get(p.asin) || "#FFF159"
+            
+            const min = p.minPrice
+            const max = p.maxPrice
+            const current = p.latestPrice || min
+            const percent = max === min ? 50 : Math.min(100, Math.max(0, ((current - min) / (max - min)) * 100))
             return (
               <article
                 class="card"
@@ -153,7 +158,9 @@ const delta = (a: number | null, b: number | null) =>
                     >
                       <span class="range-val">{fmt(p.minPrice, p.currency)}</span>
                       <div class="range-track">
-                        <div class="range-progress" style={`background:${color}; left:0%; right: 0%; opacity: 0.3`} />
+                        <div class="range-progress-left" style={`width: ${percent}%`} />
+                        <div class="range-progress-right" style={`left: ${percent}%; width: ${100 - percent}%`} />
+                        <div class="range-indicator" style={`left: ${percent}%`} />
                       </div>
                       <span class="range-val">{fmt(p.maxPrice, p.currency)}</span>
                     </div>
@@ -568,17 +575,42 @@ const delta = (a: number | null, b: number | null) =>
 
   .range-track {
     flex: 1;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.05);
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 99px;
     position: relative;
+    overflow: visible;
   }
 
-  .range-progress {
+  .range-progress-left {
     position: absolute;
     top: 0;
     bottom: 0;
+    left: 0;
+    background: #ef4444;
     border-radius: 99px;
+    opacity: 0.8;
+  }
+
+  .range-progress-right {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: #22c55e;
+    border-radius: 99px;
+    opacity: 0.8;
+  }
+
+  .range-indicator {
+    position: absolute;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    background: #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 6px #fff;
+    z-index: 2;
   }
 
   .card-footer {
