@@ -222,38 +222,7 @@ try {
     }
   }).filter((p): p is ProductSummary => p !== null)
 
-  // Build products for unconfigured ASINs
-  const unconfiguredProducts = Array.from(groupedByAsin.entries())
-    .filter(([asin]) => !coveredAsins.has(asin))
-    .map(([asin, points]) => {
-      const prices = points.map((p) => p.price)
-      const latest = points.at(-1)!
-      const previous = points.length > 1 ? points.at(-2)! : null
-
-      const historyPoints = points.map(pt => ({ price: pt.price, scrapedAt: pt.scrapedAt }))
-
-      return {
-        asin,
-        title: latest.title,
-        url: latest.url,
-        imageUrl: latest.imageUrl,
-        currency: latest.currency,
-        latestPrice: latest.price,
-        previousPrice: previous?.price ?? null,
-        minPrice: Math.min(...prices),
-        maxPrice: Math.max(...prices),
-        availability: latest.availability,
-        rating: latest.rating,
-        reviewsCount: latest.reviewsCount,
-        snapshots: points.length,
-        lastSeen: latest.scrapedAt,
-        categoryPath: "Otros",
-        customName: null,
-        historyPoints
-      }
-    })
-
-  products = [...configuredProducts, ...unconfiguredProducts]
+  products = configuredProducts
 } catch (error) {
   chartError = error instanceof Error ? error.message : "Error de conexión"
 }
@@ -290,7 +259,6 @@ for (const prod of products) {
 const convertToGroup = (name: string, builderNode: CategoryTreeBuilder): CategoryGroup => {
   const subcategories = Array.from(builderNode.subcategories.entries())
     .map(([subName, subNode]) => convertToGroup(subName, subNode))
-    .sort((a, b) => a.name.localeCompare(b.name))
 
   const products = [...builderNode.products]
   const totalCount = products.length + subcategories.reduce((acc, sub) => acc + sub.totalCount, 0)
@@ -305,7 +273,6 @@ const convertToGroup = (name: string, builderNode: CategoryTreeBuilder): Categor
 
 const topLevelCategories: CategoryGroup[] = Array.from(rootBuilder.subcategories.entries())
   .map(([name, subNode]) => convertToGroup(name, subNode))
-  .sort((a, b) => a.name.localeCompare(b.name))
 
 // --- Chart data ---
 const trackedAsins = products.map((p) => p.asin)
