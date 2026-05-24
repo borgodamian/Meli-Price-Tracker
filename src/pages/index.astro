@@ -337,6 +337,11 @@ const fmt = (price: number | null, currency: string | null = "ARS") => {
 const fmtDate = (s: string) => new Date(s).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
 const delta = (a: number | null, b: number | null) =>
   a != null && b != null && b !== 0 ? ((a - b) / b) * 100 : null
+
+const discountsCount = products.filter(p => {
+  const d = delta(p.latestPrice, p.previousPrice)
+  return d !== null && d < 0
+}).length
 ---
 
 <Layout title="Meli Price Tracker | Monitoreo de Precios">
@@ -364,6 +369,10 @@ const delta = (a: number | null, b: number | null) =>
             <span class="stat-num">{uniqueDays.length}</span>
             <span class="stat-lbl">Días</span>
           </div>
+          <button class="stat-card interactive" id="discounts-filter-btn" title="Filtrar por ofertas del último día" data-count={discountsCount}>
+            <span class="stat-num">{discountsCount}</span>
+            <span class="stat-lbl">Rebajas Hoy</span>
+          </button>
         </div>
       )}
     </header>
@@ -542,6 +551,33 @@ const delta = (a: number | null, b: number | null) =>
     text-align: center;
     min-width: 100px;
     backdrop-filter: blur(10px);
+  }
+
+  .stat-card.interactive {
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+    font-family: inherit;
+  }
+
+  .stat-card.interactive .stat-num {
+    color: #4ade80;
+  }
+
+  .stat-card.interactive:hover {
+    background: rgba(74, 222, 128, 0.06);
+    border-color: rgba(74, 222, 128, 0.25);
+    transform: translateY(-2px);
+  }
+
+  .stat-card.interactive.active {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: rgba(74, 222, 128, 0.5);
+    box-shadow: 0 0 16px rgba(74, 222, 128, 0.25);
+  }
+
+  .page.filter-discounts-only .card:not([data-has-discount="true"]) {
+    display: none !important;
   }
 
   .stat-num {
@@ -826,6 +862,31 @@ const delta = (a: number | null, b: number | null) =>
 
       point.addEventListener("mouseleave", () => {
         tooltip.classList.remove("visible")
+      })
+    })
+  }
+
+  // Price drops toggle filter
+  const filterBtn = document.getElementById("discounts-filter-btn")
+  const pageElement = document.querySelector(".page")
+
+  if (filterBtn && pageElement) {
+    filterBtn.addEventListener("click", () => {
+      const isActive = filterBtn.classList.toggle("active")
+      pageElement.classList.toggle("filter-discounts-only", isActive)
+
+      const categories = document.querySelectorAll(".category-node")
+      categories.forEach((cat) => {
+        if (isActive) {
+          const hasDiscountCard = cat.querySelector('.card[data-has-discount="true"]') !== null
+          if (hasDiscountCard) {
+            cat.style.display = ""
+          } else {
+            cat.style.display = "none"
+          }
+        } else {
+          cat.style.display = ""
+        }
       })
     })
   }

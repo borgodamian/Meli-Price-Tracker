@@ -77,8 +77,9 @@ const delta = (a: number | null, b: number | null) =>
           {category.products.map((p) => {
             const d = delta(p.latestPrice, p.previousPrice)
             const color = colorMap.get(p.asin) || "#FFF159"
+            const hasDiscount = d !== null && d < 0
             return (
-              <article class="card">
+              <article class="card" data-has-discount={hasDiscount ? "true" : "false"}>
                 <div class="card-body-wrapper">
                   {/* Product Image left thumbnail */}
                   <div class="product-thumb">
@@ -564,5 +565,14 @@ const delta = (a: number | null, b: number | null) =>
     font-size: 0.62rem;
     color: #475569;
     display: block;
+  }
+
+  .card[data-has-discount="true"] {
+    border-color: rgba(74, 222, 128, 0.15);
+  }
+
+  .card[data-has-discount="true"]:hover {
+    border-color: rgba(74, 222, 128, 0.4);
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(74, 222, 128, 0.12);
   }
 </style>
