@@ -383,10 +383,38 @@ const delta = (a: number | null, b: number | null) =>
 const discountsTodayCount = products.filter(p => p.hasDiscountDay).length
 const discountsWeekCount = products.filter(p => p.hasDiscountWeek).length
 const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
+
+const maxLastSeen = products.length > 0
+  ? new Date(Math.max(...products.map(p => new Date(p.lastSeen).getTime()))).toISOString()
+  : new Date().toISOString()
 ---
 
 <Layout title="Meli Price Tracker | Monitoreo de Precios">
   <main class="page">
+    <!-- Next Update Banner -->
+    <div class="next-update-banner animate-fade-in" data-last-seen={maxLastSeen}>
+      <div class="banner-left">
+        <span class="pulse-dot"></span>
+        <span class="banner-title">Próxima actualización estimada:</span>
+        <span class="banner-time" id="next-update-time">Calculando...</span>
+      </div>
+      <div class="banner-right">
+        <div class="slider-wrapper">
+          <span class="slider-label">Intervalo de escaneo: <strong id="slider-value">7 horas</strong></span>
+          <div class="slider-control">
+            <input type="range" id="update-interval-slider" min="1" max="24" value="7" class="interval-slider" />
+          </div>
+        </div>
+        <div class="cron-box" id="cron-box" title="Copiar expresión cron para GitHub Actions">
+          <span class="cron-label">Cron:</span>
+          <code id="cron-code">0 */7 * * *</code>
+          <button class="copy-btn" id="copy-cron-btn" aria-label="Copiar cron">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <header class="top">
       <div class="brand">
         <div class="logo-box">
@@ -1228,6 +1256,224 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
     color: #FFF159;
     border: 1px solid rgba(255, 241, 89, 0.15);
   }
+
+  /* --- Next Update Banner --- */
+  .next-update-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(30, 41, 59, 0.35);
+    border: 1px solid rgba(255, 241, 89, 0.12);
+    border-radius: 16px;
+    padding: 0.85rem 1.5rem;
+    margin-bottom: 2rem;
+    gap: 1.5rem;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  }
+
+  .banner-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .pulse-dot {
+    width: 9px;
+    height: 9px;
+    background-color: #22c55e;
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 0 8px #22c55e;
+  }
+
+  .pulse-dot::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-color: #22c55e;
+    border-radius: 50%;
+    animation: dot-pulse 1.8s infinite ease-in-out;
+  }
+
+  @keyframes dot-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(2.8);
+      opacity: 0;
+    }
+  }
+
+  .banner-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #94a3b8;
+  }
+
+  .banner-time {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(255, 241, 89, 0.08);
+    color: #FFF159;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 241, 89, 0.15);
+  }
+
+  .banner-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .slider-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .slider-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .slider-label strong {
+    color: #FFF159;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .slider-control {
+    display: flex;
+    align-items: center;
+  }
+
+  .interval-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 140px;
+    height: 5px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .interval-slider:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Slider Thumb */
+  .interval-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #FFF159;
+    box-shadow: 0 0 8px rgba(255, 241, 89, 0.5);
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.1s;
+  }
+
+  .interval-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: #fff;
+  }
+
+  .interval-slider::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border: none;
+    border-radius: 50%;
+    background: #FFF159;
+    box-shadow: 0 0 8px rgba(255, 241, 89, 0.5);
+    cursor: pointer;
+    transition: transform 0.1s, background-color 0.1s;
+  }
+
+  .interval-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    background: #fff;
+  }
+
+  .cron-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.35rem 0.75rem;
+    border-radius: 10px;
+    font-size: 0.75rem;
+  }
+
+  .cron-label {
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .cron-box code {
+    color: #3b82f6;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0.15rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background-color 0.15s;
+  }
+
+  .copy-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .copy-btn.copied {
+    color: #22c55e;
+  }
+
+  /* Responsive styles adjustment */
+  @media (max-width: 768px) {
+    .next-update-banner {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+      padding: 1rem;
+    }
+    .banner-right {
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .interval-slider {
+      width: 100%;
+    }
+    .slider-wrapper {
+      flex: 1;
+    }
+  }
 </style>
 
 <script>
@@ -1741,6 +1987,148 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
       } catch (err) {
         console.error("Error parsing main chart series data", err)
       }
+    }
+  }
+
+  // Next Update Banner Logic
+  const banner = document.querySelector(".next-update-banner");
+  if (banner) {
+    const nextUpdateTimeEl = document.getElementById("next-update-time");
+    const intervalSlider = document.getElementById("update-interval-slider");
+    const sliderValueEl = document.getElementById("slider-value");
+    const cronCodeEl = document.getElementById("cron-code");
+    const copyCronBtn = document.getElementById("copy-cron-btn");
+
+    if (nextUpdateTimeEl && intervalSlider && sliderValueEl && cronCodeEl && copyCronBtn) {
+      // Load saved interval, default to 7 hours
+      let intervalHours = parseInt(localStorage.getItem("update-interval") || "7", 10);
+      if (isNaN(intervalHours) || intervalHours < 1 || intervalHours > 24) {
+        intervalHours = 7;
+      }
+      
+      (intervalSlider as HTMLInputElement).value = intervalHours.toString();
+      updateBannerUI(intervalHours);
+
+      // Listen for slider inputs
+      intervalSlider.addEventListener("input", (e) => {
+        const val = parseInt((e.target as HTMLInputElement).value, 10);
+        localStorage.setItem("update-interval", val.toString());
+        updateBannerUI(val);
+      });
+
+      // Periodically update the remaining time (every minute)
+      setInterval(() => {
+        const val = parseInt((intervalSlider as HTMLInputElement).value, 10);
+        updateBannerUI(val);
+      }, 60000);
+
+      // Copy to Clipboard logic
+      copyCronBtn.addEventListener("click", () => {
+        const cronText = cronCodeEl.textContent || "0 */7 * * *";
+        navigator.clipboard.writeText(cronText).then(() => {
+          copyCronBtn.classList.add("copied");
+          const origSVG = copyCronBtn.innerHTML;
+          // Change to check icon
+          copyCronBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+          
+          setTimeout(() => {
+            copyCronBtn.classList.remove("copied");
+            copyCronBtn.innerHTML = origSVG;
+          }, 2000);
+        }).catch(err => {
+          console.error("No se pudo copiar el texto: ", err);
+        });
+      });
+    }
+
+    function getNextCronTime(intervalHours: number): Date {
+      const now = new Date();
+      // Start with the current hour truncated to 0 minutes, 0 seconds
+      const next = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        now.getUTCHours(),
+        0, 0, 0
+      ));
+      
+      // If we are already past the 0th minute of this hour, check future hours
+      if (now.getTime() >= next.getTime()) {
+        next.setUTCHours(next.getUTCHours() + 1);
+      }
+      
+      // Find the next UTC hour that is divisible by intervalHours
+      while (next.getUTCHours() % intervalHours !== 0) {
+        next.setUTCHours(next.getUTCHours() + 1);
+      }
+      
+      return next;
+    }
+
+    function updateBannerUI(hours: number) {
+      if (!sliderValueEl || !cronCodeEl || !nextUpdateTimeEl) return;
+
+      // Update Slider text label
+      sliderValueEl.textContent = hours === 1 ? "1 hora" : `${hours} horas`;
+
+      // Update Cron display code
+      let cronStr = `0 */${hours} * * *`;
+      if (hours === 1) {
+        cronStr = "0 * * * *";
+      }
+      cronCodeEl.textContent = cronStr;
+
+      // Calculate next update time
+      const nextRun = getNextCronTime(hours);
+      
+      // Format time in Argentina (America/Argentina/Buenos_Aires)
+      const timeFormatter = new Intl.DateTimeFormat("es-AR", {
+        timeZone: "America/Argentina/Buenos_Aires",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+      const timeStr = timeFormatter.format(nextRun);
+
+      const dateFormatter = new Intl.DateTimeFormat("es-AR", {
+        timeZone: "America/Argentina/Buenos_Aires",
+        day: "2-digit",
+        month: "2-digit"
+      });
+      
+      const nextRunDateStr = dateFormatter.format(nextRun);
+      const todayDateStr = dateFormatter.format(new Date());
+      
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const tomorrowDateStr = dateFormatter.format(tomorrow);
+
+      let dayLabel = "";
+      if (nextRunDateStr === todayDateStr) {
+        dayLabel = "Hoy";
+      } else if (nextRunDateStr === tomorrowDateStr) {
+        dayLabel = "Mañana";
+      } else {
+        // Show as DD/MM
+        dayLabel = nextRunDateStr;
+      }
+
+      // Calculate relative time
+      const msRemaining = nextRun.getTime() - Date.now();
+      let relativeStr = "";
+      if (msRemaining <= 0) {
+        relativeStr = "en cualquier momento";
+      } else {
+        const totalMinutes = Math.ceil(msRemaining / (60 * 1000));
+        const remHours = Math.floor(totalMinutes / 60);
+        const remMinutes = totalMinutes % 60;
+        if (remHours > 0) {
+          relativeStr = `en ${remHours}h ${remMinutes}m`;
+        } else {
+          relativeStr = `en ${remMinutes}m`;
+        }
+      }
+
+      nextUpdateTimeEl.innerHTML = `${dayLabel}, ${timeStr} hs <span style="font-size:0.75rem; font-weight:500; opacity:0.85; margin-left: 2px;">(${relativeStr})</span>`;
     }
   }
 </script>
