@@ -51,7 +51,7 @@ const fmt = (price: number | null, currency: string | null = "ARS") => {
   return `${symbol} ${formatted}`
 }
 
-const fmtDate = (s: string) => new Date(s).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+const fmtDate = (s: string) => new Date(s).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
 
 const delta = (a: number | null, b: number | null) =>
   a != null && b != null && b !== 0 ? ((a - b) / b) * 100 : null

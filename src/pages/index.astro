@@ -354,7 +354,7 @@ const xTickCount = Math.min(6, uniqueDays.length)
 const xStep = allGroupDates.length > 1 ? (maxDate - minDate) / Math.max(xTickCount - 1, 1) : 0
 const xTicks = Array.from({ length: xTickCount }, (_, i) => {
   const ts = minDate + i * xStep
-  return { x: x(ts), label: new Date(ts).toLocaleDateString("es-AR", { day: "2-digit", month: "short" }) }
+  return { x: x(ts), label: new Date(ts).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "short" }) }
 })
 
 const series = products.map((prod) => {
@@ -376,7 +376,7 @@ const fmt = (price: number | null, currency: string | null = "ARS") => {
   return `${symbol} ${formatted}`
 }
 
-const fmtDate = (s: string) => new Date(s).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+const fmtDate = (s: string) => new Date(s).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
 const delta = (a: number | null, b: number | null) =>
   a != null && b != null && b !== 0 ? ((a - b) / b) * 100 : null
 
@@ -532,7 +532,7 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
                         fill={s.color}
                         class="point"
                         data-price={fmt(pt.price, pt.currency)}
-                        data-date={new Date(pt.scrapedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit" }) + "hs"}
+                        data-date={new Date(pt.scrapedAt).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "short", hour: "2-digit" }) + "hs"}
                         data-name={products.find(p => p.asin === s.asin)?.title || s.asin}
                         data-color={s.color}
                       />
@@ -1387,7 +1387,7 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
     let xTicksHTML = ""
     for (let i = 0; i < xTickCount; i++) {
       const t = minTime + i * xStep
-      const label = new Date(t).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })
+      const label = new Date(t).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "short" })
       xTicksHTML += `
         <text x="${getX(t)}" y="${H - 8}" fill="#475569" font-size="10" font-family="JetBrains Mono, monospace" text-anchor="middle">${label}</text>
       `
@@ -1396,7 +1396,7 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
     const circlesHTML = points.map(pt => {
       const cx = getX(pt.time)
       const cy = getY(pt.price)
-      const dateStr = new Date(pt.rawDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit" }) + "hs"
+      const dateStr = new Date(pt.rawDate).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "short", hour: "2-digit" }) + "hs"
       return `
         <circle
           cx="${cx}"
@@ -1651,7 +1651,7 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
           let xTicksHTML = ""
           for (let i = 0; i < xTickCount; i++) {
             const ts = minDate + i * xStep
-            const label = new Date(ts).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })
+            const label = new Date(ts).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "short" })
             xTicksHTML += `
               <text x="${getX(ts)}" y="${H - PB + 22}" class="label" text-anchor="middle" fill="#475569" font-size="10" font-family="JetBrains Mono, monospace">${label}</text>
             `
@@ -1668,7 +1668,7 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
             return s.pts.map((pt: any) => {
               const cx = getX(new Date(pt.scrapedAt).getTime())
               const cy = getY(pt.price)
-              const dateStr = new Date(pt.scrapedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit" }) + "hs"
+              const dateStr = new Date(pt.scrapedAt).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "2-digit", month: "short", hour: "2-digit" }) + "hs"
               return `
                 <circle
                   cx="${cx}"
