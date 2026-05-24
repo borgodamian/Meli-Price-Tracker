@@ -1,4 +1,4 @@
-{ 
+{
     "Ropa": {
         "Zapatillas": {
             "Zapatillas Tracking": [
@@ -84,6 +84,15 @@
                 "url": "https://www.mercadolibre.com.ar/anthelios-uv-mune-400-oil-control-fluid-50-ml-la-roche-posay/p/MLA23459913#polycard_client=search-nordic&search_layout=grid&position=1&type=product&tracking_id=35be27d1-e72c-4430-91bc-793bb47c027c&wid=MLA1435644381&sid=search",
                 "threshold_percentage": 10,
                 "image": "anthelios_oil_control_sin_color.webp"
+            },
+            {
+                "name": "Protector Solar Eucerin Toque Seco",
+                "urls": [
+                    "https://www.mercadolibre.com.ar/eucerin-sun-oil-control-protector-solar-facial-toque-seco-fps-50-x-50-ml/p/MLA16048275?pdp_filters=seller_id%3A608885756#polycard_client=recommendations_pdp-seller_items-above&reco_backend=ranker-retsys-same-seller&reco_model=rk_entity_sameseller&reco_client=pdp-seller_items-above&reco_item_pos=0&reco_backend_type=low_level&reco_id=5929f528-03ab-47ae-a0f7-b0e76350ee50&wid=MLA1635331440&sid=recos",
+                    "https://www.mercadolibre.com.ar/protector-solar-facial-eucerin-oil-control-gel-fps-50-50-ml/up/MLAU149817835#polycard_client=search-desktop&be_origin=backend&search_layout=grid&position=10&type=product&tracking_id=4de3b8b6-bb3a-45e0-9ee4-597918536cca&wid=MLA885221732&sid=search"
+                ],
+                "threshold_percentage": 10,
+                "image": "eucerin_protector.webp"
             }
         ],
         "Baño": [
