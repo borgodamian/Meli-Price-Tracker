@@ -98,6 +98,7 @@ const delta = (a: number | null, b: number | null) =>
                 data-date={new Date(p.lastSeen).getTime()}
                 data-name={(p.title || "").toLowerCase()}
                 data-asin={p.asin.toLowerCase()}
+                data-threshold={p.thresholdPercentage || 10}
               >
                 <div class="card-body-wrapper">
                   {/* Product Image left thumbnail */}
@@ -131,11 +132,15 @@ const delta = (a: number | null, b: number | null) =>
                           const discountPct = d !== null && d < 0 ? Math.abs(d) : 0
                           const threshold = p.thresholdPercentage || 10
                           const isFiresale = discountPct >= threshold
-                          return isFiresale ? (
-                            <span class="badge-alert-active animate-pulse" title={`¡Alerta activada! El descuento de ${discountPct.toFixed(1)}% superó el umbral de ${threshold}%`}>
+                          return (
+                            <span
+                              class="badge-alert-active animate-pulse"
+                              style={isFiresale ? "" : "display: none;"}
+                              title={`¡Alerta activada! El descuento de ${discountPct.toFixed(1)}% superó el umbral de ${threshold}%`}
+                            >
                               🔔 Alerta
                             </span>
-                          ) : null
+                          )
                         })()}
                       </div>
                     </div>
