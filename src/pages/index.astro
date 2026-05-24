@@ -499,46 +499,6 @@ const maxLastSeen = products.length > 0
               })}
             </div>
 
-            <!-- Threshold Configuration Panel -->
-            <div class="threshold-panel animate-fade-in" id="threshold-panel" style="display: none;">
-              <div class="threshold-panel-header">
-                <div class="threshold-panel-title-group">
-                  <span class="threshold-bell-icon">🔔</span>
-                  <div>
-                    <h3 id="threshold-product-title">Configurar Umbral de Alerta</h3>
-                    <p class="threshold-panel-subtitle">
-                      ID: <span id="threshold-product-id" class="code-id">MLA...</span> | 
-                      Descuento actual: <span id="threshold-product-discount" class="discount-val">0%</span>
-                    </p>
-                  </div>
-                </div>
-                <button class="threshold-close-btn" id="threshold-close-btn" title="Cerrar panel">&times;</button>
-              </div>
-              <div class="threshold-panel-body">
-                <div class="threshold-slider-container">
-                  <div class="threshold-slider-info">
-                    <span class="slider-label">Umbral de rebaja para alerta por correo:</span>
-                    <span class="slider-display-val" id="threshold-slider-val">10%</span>
-                  </div>
-                  <div class="threshold-slider-row">
-                    <span class="pct-limit">1%</span>
-                    <input type="range" id="threshold-slider" min="1" max="90" value="10" class="threshold-range-slider" />
-                    <span class="pct-limit">90%</span>
-                  </div>
-                </div>
-                <div class="threshold-instructions">
-                  <div class="status-indicator-box">
-                    <span class="status-indicator-dot" id="threshold-status-dot"></span>
-                    <span id="threshold-status-text">Alerta inactiva</span>
-                  </div>
-                  <p class="json-copy-hint">
-                    Para aplicar en producción (alertas de correo), edite <code>products.json</code> para este producto y agregue/modifique:
-                    <code id="threshold-json-code">"threshold_percentage": 10</code>
-                  </p>
-                </div>
-              </div>
-            </div>
-
             <section class="chart-section animate-slide-up">
               <div class="chart-header-row">
                 <div class="chart-header-left">
@@ -625,6 +585,31 @@ const maxLastSeen = products.length > 0
         <p class="modal-subtitle">Evolución de precios del producto</p>
       </div>
       <div class="modal-body">
+        <!-- Modal Threshold Section -->
+        <div class="modal-threshold-section" id="modal-threshold-section">
+          <div class="threshold-slider-container">
+            <div class="threshold-slider-info">
+              <span class="slider-label">Umbral de rebaja para alerta por correo:</span>
+              <span class="slider-display-val" id="modal-threshold-slider-val">10%</span>
+            </div>
+            <div class="threshold-slider-row">
+              <span class="pct-limit">1%</span>
+              <input type="range" id="modal-threshold-slider" min="1" max="90" value="10" class="threshold-range-slider" />
+              <span class="pct-limit">90%</span>
+            </div>
+          </div>
+          <div class="threshold-instructions-row">
+            <div class="status-indicator-box">
+              <span class="status-indicator-dot" id="modal-threshold-status-dot"></span>
+              <span id="modal-threshold-status-text">Alerta inactiva</span>
+            </div>
+            <p class="json-copy-hint">
+              Copiar para <code>products.json</code>:
+              <code id="modal-threshold-json-code">"threshold_percentage": 10</code>
+            </p>
+          </div>
+        </div>
+
         <div class="modal-chart-container" id="modal-chart-container">
           <!-- SVG dinámico se inyectará aquí -->
         </div>
@@ -1515,143 +1500,60 @@ const maxLastSeen = products.length > 0
     }
   }
 
-  /* --- Card Selection Highlight --- */
+  /* --- Card Cursor Pointer --- */
   .card {
     cursor: pointer;
   }
-  .card.selected {
-    border-color: rgba(251, 191, 36, 0.7) !important;
-    background: rgba(251, 191, 36, 0.05) !important;
-    box-shadow: 0 0 20px rgba(251, 191, 36, 0.15), 0 12px 30px -5px rgba(0, 0, 0, 0.6) !important;
-  }
 
-  /* --- Threshold Configuration Panel --- */
-  .threshold-panel {
-    background: rgba(30, 41, 59, 0.35);
-    border: 1px solid rgba(251, 191, 36, 0.25);
-    border-radius: 18px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
-    animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
-  .threshold-panel-header {
+  /* --- Modal Threshold Section --- */
+  .modal-threshold-section {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(251, 191, 36, 0.15);
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    padding-bottom: 0.8rem;
-    margin-bottom: 1.2rem;
-  }
-
-  .threshold-panel-title-group {
-    display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 0.8rem;
-  }
-
-  .threshold-bell-icon {
-    font-size: 1.5rem;
-    color: #fbbf24;
-    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.4));
-  }
-
-  .threshold-panel-header h3 {
-    margin: 0;
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #fff;
-  }
-
-  .threshold-panel-subtitle {
-    margin: 0.25rem 0 0;
-    font-size: 0.78rem;
-    color: #64748b;
-  }
-
-  .threshold-panel-subtitle .code-id {
-    color: #94a3b8;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600;
-  }
-
-  .threshold-panel-subtitle .discount-val {
-    color: #4ade80;
-    font-weight: 700;
-  }
-
-  .threshold-close-btn {
-    background: transparent;
-    border: none;
-    color: #64748b;
-    font-size: 1.6rem;
-    cursor: pointer;
-    line-height: 1;
-    transition: color 0.15s;
-    margin-top: -0.2rem;
-  }
-
-  .threshold-close-btn:hover {
-    color: #fff;
-  }
-
-  .threshold-panel-body {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-  }
-
-  @media (max-width: 768px) {
-    .threshold-panel-body {
-      grid-template-columns: 1fr;
-      gap: 1.2rem;
-    }
   }
 
   .threshold-slider-container {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    background: rgba(15, 23, 42, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.03);
-    padding: 1.2rem 1.5rem;
-    border-radius: 12px;
+    gap: 0.5rem;
   }
 
   .threshold-slider-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
   }
 
   .slider-label {
-    font-size: 0.8rem;
-    color: #cbd5e1;
+    font-size: 0.78rem;
+    color: #94a3b8;
     font-weight: 500;
   }
 
   .slider-display-val {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: #fbbf24;
     font-family: 'JetBrains Mono', monospace;
     background: rgba(251, 191, 36, 0.08);
-    padding: 0.15rem 0.5rem;
-    border-radius: 6px;
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
     border: 1px solid rgba(251, 191, 36, 0.15);
   }
 
   .threshold-slider-row {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: 0.6rem;
   }
 
   .pct-limit {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: #475569;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 500;
@@ -1661,7 +1563,7 @@ const maxLastSeen = products.length > 0
     -webkit-appearance: none;
     appearance: none;
     flex: 1;
-    height: 6px;
+    height: 5px;
     border-radius: 5px;
     background: rgba(255, 255, 255, 0.08);
     outline: none;
@@ -1671,60 +1573,52 @@ const maxLastSeen = products.length > 0
   .threshold-range-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     background: #fbbf24;
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
     cursor: pointer;
-    transition: transform 0.1s, background-color 0.1s;
-  }
-
-  .threshold-range-slider::-webkit-slider-thumb:hover {
-    transform: scale(1.2);
-    background: #fff;
   }
 
   .threshold-range-slider::-moz-range-thumb {
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
     border: none;
     border-radius: 50%;
     background: #fbbf24;
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
     cursor: pointer;
-    transition: transform 0.1s, background-color 0.1s;
   }
 
-  .threshold-range-slider::-moz-range-thumb:hover {
-    transform: scale(1.2);
-    background: #fff;
-  }
-
-  .threshold-instructions {
+  .threshold-instructions-row {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 0.6rem;
+    flex-wrap: wrap;
+    gap: 0.6rem;
   }
 
   .status-indicator-box {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8rem;
+    gap: 0.4rem;
+    font-size: 0.75rem;
     font-weight: 600;
   }
 
   .status-indicator-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
+    display: inline-block;
   }
 
   .status-indicator-dot.active {
     background-color: #fbbf24;
-    box-shadow: 0 0 8px #fbbf24;
+    box-shadow: 0 0 6px #fbbf24;
     animation: alert-pulse 2s infinite ease-in-out;
   }
 
@@ -1739,26 +1633,27 @@ const maxLastSeen = products.length > 0
 
   .json-copy-hint {
     margin: 0;
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     color: #64748b;
-    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
   }
 
   .json-copy-hint code {
-    background: rgba(15, 23, 42, 0.5);
+    background: rgba(15, 23, 42, 0.6);
     color: #3b82f6;
-    padding: 0.15rem 0.4rem;
+    padding: 0.1rem 0.35rem;
     border-radius: 4px;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
-    display: block;
-    margin-top: 0.3rem;
     border: 1px solid rgba(255, 255, 255, 0.03);
-    width: max-content;
   }
 </style>
 
 <script>
+  let selectedProductCard: HTMLElement | null = null;
+
   const container = document.getElementById("chart-container")
   const tooltip = document.getElementById("chart-tooltip")
   if (container && tooltip) {
@@ -1987,6 +1882,7 @@ const maxLastSeen = products.length > 0
   if (modal && modalOverlay && modalCloseBtn && modalProductTitle) {
     const closeModal = () => {
       modal.classList.remove("active")
+      selectedProductCard = null;
     }
 
     modalOverlay.addEventListener("click", closeModal)
@@ -2013,6 +1909,13 @@ const maxLastSeen = products.length > 0
 
               modalProductTitle.textContent = title
               modal.classList.add("active")
+
+              const card = rangeBox.closest(".card")
+              if (card && card instanceof HTMLElement) {
+                selectedProductCard = card;
+                updateModalThresholdUI(card);
+              }
+
               renderModalChart(historyPoints, color, currency)
             } catch (err) {
               console.error("Error parsing history data", err)
@@ -2414,20 +2317,7 @@ const maxLastSeen = products.length > 0
     }
   }
 
-  // Threshold Configuration Slider & Selection Logic
-  const thresholdPanel = document.getElementById("threshold-panel");
-  const thresholdTitle = document.getElementById("threshold-product-title");
-  const thresholdId = document.getElementById("threshold-product-id");
-  const thresholdDiscount = document.getElementById("threshold-product-discount");
-  const thresholdSlider = document.getElementById("threshold-slider") as HTMLInputElement;
-  const thresholdSliderVal = document.getElementById("threshold-slider-val");
-  const thresholdStatusDot = document.getElementById("threshold-status-dot");
-  const thresholdStatusText = document.getElementById("threshold-status-text");
-  const thresholdJsonCode = document.getElementById("threshold-json-code");
-  const thresholdCloseBtn = document.getElementById("threshold-close-btn");
-
-  let selectedProductCard: HTMLElement | null = null;
-
+  // Threshold Configuration Slider inside Modal Logic
   // 1. Helper to update a card's alert badge
   function updateCardAlertBadge(card: HTMLElement) {
     const discount = parseFloat(card.dataset.discount || "0");
@@ -2464,74 +2354,40 @@ const maxLastSeen = products.length > 0
   // Apply initially
   applySavedThresholds();
 
-  // 3. Helper to update the details in the Threshold settings panel
-  function updateThresholdPanelUI(card: HTMLElement) {
-    if (!thresholdPanel || !thresholdTitle || !thresholdId || !thresholdDiscount || !thresholdSlider || !thresholdSliderVal || !thresholdStatusDot || !thresholdStatusText || !thresholdJsonCode) return;
+  // 3. Helper to update the details in the Modal Threshold settings panel
+  function updateModalThresholdUI(card: HTMLElement) {
+    const slider = document.getElementById("modal-threshold-slider") as HTMLInputElement;
+    const valDisplay = document.getElementById("modal-threshold-slider-val");
+    const statusDot = document.getElementById("modal-threshold-status-dot");
+    const statusText = document.getElementById("modal-threshold-status-text");
+    const jsonCode = document.getElementById("modal-threshold-json-code");
 
-    const titleLink = card.querySelector(".title a");
-    const titleText = titleLink ? titleLink.textContent : "Producto";
-    const asin = card.dataset.asin || "MLA...";
+    if (!slider || !valDisplay || !statusDot || !statusText || !jsonCode) return;
+
     const discount = parseFloat(card.dataset.discount || "0");
     const threshold = parseFloat(card.dataset.threshold || "10");
 
-    thresholdTitle.textContent = titleText;
-    thresholdId.textContent = asin.toUpperCase();
-    thresholdDiscount.textContent = `${discount.toFixed(1)}%`;
-    thresholdSlider.value = threshold.toString();
-    thresholdSliderVal.textContent = `${threshold}%`;
+    slider.value = threshold.toString();
+    valDisplay.textContent = `${threshold}%`;
 
     const isFiresale = discount >= threshold;
     if (isFiresale) {
-      thresholdStatusDot.className = "status-indicator-dot active";
-      thresholdStatusText.textContent = "Alerta activa (descuento supera el umbral)";
-      thresholdStatusText.style.color = "#fbbf24";
+      statusDot.className = "status-indicator-dot active";
+      statusText.textContent = "Alerta activa (descuento supera el umbral)";
+      statusText.style.color = "#fbbf24";
     } else {
-      thresholdStatusDot.className = "status-indicator-dot inactive";
-      thresholdStatusText.textContent = `Alerta inactiva (descuento actual del ${discount.toFixed(1)}% es menor al umbral)`;
-      thresholdStatusText.style.color = "#64748b";
+      statusDot.className = "status-indicator-dot inactive";
+      statusText.textContent = `Alerta inactiva (descuento actual del ${discount.toFixed(1)}% es menor al umbral)`;
+      statusText.style.color = "#64748b";
     }
 
-    thresholdJsonCode.textContent = `"threshold_percentage": ${threshold}`;
+    jsonCode.textContent = `"threshold_percentage": ${threshold}`;
   }
 
-  // 4. Listen for clicks on cards to select them
-  document.addEventListener("click", (e) => {
-    const target = e.target as HTMLElement;
-    if (!target) return;
-
-    // Ignore clicks on links, range-box history modal trigger, and buttons
-    if (target.closest("a") || target.closest(".range-box") || target.closest("button") || target.closest(".sort-dropdown")) {
-      return;
-    }
-
-    const card = target.closest(".card") as HTMLElement;
-    if (card) {
-      const isAlreadySelected = card.classList.contains("selected");
-
-      // Deselect any currently selected card
-      document.querySelectorAll(".card.selected").forEach((c) => c.classList.remove("selected"));
-
-      if (isAlreadySelected) {
-        // Deselect
-        selectedProductCard = null;
-        if (thresholdPanel) thresholdPanel.style.display = "none";
-      } else {
-        // Select new card
-        card.classList.add("selected");
-        selectedProductCard = card;
-        if (thresholdPanel) {
-          thresholdPanel.style.display = "block";
-          updateThresholdPanelUI(card);
-          // Scroll slightly to the panel to highlight it
-          thresholdPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
-      }
-    }
-  });
-
-  // 5. Handle threshold slider change events
-  if (thresholdSlider) {
-    thresholdSlider.addEventListener("input", (e) => {
+  // 4. Handle modal threshold slider change events
+  const modalThresholdSlider = document.getElementById("modal-threshold-slider") as HTMLInputElement;
+  if (modalThresholdSlider) {
+    modalThresholdSlider.addEventListener("input", (e) => {
       if (!selectedProductCard) return;
 
       const val = parseInt((e.target as HTMLInputElement).value, 10);
@@ -2542,22 +2398,11 @@ const maxLastSeen = products.length > 0
         localStorage.setItem(`threshold-${asin}`, val.toString());
       }
 
-      // Update badge on card
+      // Update badge on card in the background dashboard
       updateCardAlertBadge(selectedProductCard);
 
-      // Update Panel Details
-      updateThresholdPanelUI(selectedProductCard);
-    });
-  }
-
-  // 6. Close panel button
-  if (thresholdCloseBtn && thresholdPanel) {
-    thresholdCloseBtn.addEventListener("click", () => {
-      if (selectedProductCard) {
-        selectedProductCard.classList.remove("selected");
-        selectedProductCard = null;
-      }
-      thresholdPanel.style.display = "none";
+      // Update Modal Threshold UI
+      updateModalThresholdUI(selectedProductCard);
     });
   }
 </script>
