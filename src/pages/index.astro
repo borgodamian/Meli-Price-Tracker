@@ -121,6 +121,7 @@ type ProductSummary = {
   hasDiscountDay: boolean
   hasDiscountWeek: boolean
   hasDiscountMonth: boolean
+  thresholdPercentage: number | null
 }
 
 let allPoints: PriceRow[] = []
@@ -258,7 +259,8 @@ try {
       historyPoints,
       hasDiscountDay,
       hasDiscountWeek,
-      hasDiscountMonth
+      hasDiscountMonth,
+      thresholdPercentage: config.thresholdPercentage ?? null
     }
   }).filter((p): p is ProductSummary => p !== null)
 
@@ -424,6 +426,25 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
       )}
     </header>
 
+    {products.length > 0 && (
+      <div class="toolbar animate-fade-in">
+        <div class="search-box">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-input" placeholder="Buscar por producto, marca o ID..." />
+        </div>
+        <div class="sort-box">
+          <span class="sort-label">Ordenar por:</span>
+          <select id="sort-select" class="sort-dropdown">
+            <option value="default">Por Defecto</option>
+            <option value="discount-desc">Mayor Descuento</option>
+            <option value="price-asc">Precio: Menor a Mayor</option>
+            <option value="price-desc">Precio: Mayor a Menor</option>
+            <option value="date-desc">Última Actualización</option>
+          </select>
+        </div>
+      </div>
+    )}
+
     {chartError ? (
       <div class="notice">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-warning"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -456,6 +477,15 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
                   <h2>Evolución histórica de precios</h2>
                   <p class="subtitle">Gráfico interactivo de precios de productos monitoreados</p>
                 </div>
+
+                <div class="chart-controls">
+                  <div class="chart-range-selector">
+                    <button class="range-btn active" data-range="all">Todo</button>
+                    <button class="range-btn" data-range="30">30 días</button>
+                    <button class="range-btn" data-range="7">7 días</button>
+                  </div>
+                </div>
+
                 <div class="legend">
                   {series.map((s) => {
                     const item = products.find(p => p.asin === s.asin)
@@ -469,7 +499,14 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
                 </div>
               </div>
 
-              <div class="chart" id="chart-container">
+              <div class="chart" id="chart-container" data-series={JSON.stringify(products.map(p => ({
+                asin: p.asin,
+                title: p.title,
+                customName: p.customName,
+                historyPoints: p.historyPoints,
+                color: colorMap.get(p.asin),
+                currency: p.currency
+              })))}>
                 <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Historial de precios de MercadoLibre">
                   {yTicks.map((v) => (
                     <g>
@@ -1061,8 +1098,133 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
     transition: r 0.15s;
   }
 
-  .chart-circle:hover {
-    r: 6.5;
+  /* --- Toolbar (Search & Sort) --- */
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(30, 41, 59, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 16px;
+    padding: 0.8rem 1.25rem;
+    margin-bottom: 2rem;
+    gap: 1.5rem;
+    backdrop-filter: blur(8px);
+  }
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 0.5rem 0.85rem;
+    flex: 1;
+    max-width: 420px;
+    gap: 0.6rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  .search-box:focus-within {
+    border-color: rgba(255, 241, 89, 0.3);
+    box-shadow: 0 0 12px rgba(255, 241, 89, 0.06);
+  }
+
+  .search-icon {
+    color: #64748b;
+    flex-shrink: 0;
+  }
+
+  .search-box input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 0.85rem;
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .search-box input::placeholder {
+    color: #475569;
+  }
+
+  .sort-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .sort-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  .sort-dropdown {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #cbd5e1;
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 0.45rem 0.85rem;
+    border-radius: 10px;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+
+  .sort-dropdown:hover, .sort-dropdown:focus {
+    border-color: rgba(255, 241, 89, 0.2);
+  }
+
+  .sort-dropdown option {
+    background: #1e293b;
+    color: #f1f5f9;
+  }
+
+  /* --- Chart Range Selector --- */
+  .chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .chart-range-selector {
+    display: flex;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 0.2rem;
+    gap: 0.1rem;
+  }
+
+  .range-btn {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.8rem;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .range-btn:hover {
+    color: #cbd5e1;
+  }
+
+  .range-btn.active {
+    background: rgba(255, 241, 89, 0.08);
+    color: #FFF159;
+    border: 1px solid rgba(255, 241, 89, 0.15);
   }
 </style>
 
@@ -1329,5 +1491,254 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
         }
       }
     })
+  }
+
+  // Real-time Search Filter
+  const searchInput = document.getElementById("search-input")
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      const query = (e.target as any).value.trim().toLowerCase()
+      const cards = document.querySelectorAll(".card")
+
+      // Find current active discount filter
+      const activeFilter = document.querySelector(".stat-card.interactive.active")
+      const filterAttr = activeFilter ? (activeFilter.id === "filter-btn-day" ? "data-has-discount-day" : activeFilter.id === "filter-btn-week" ? "data-has-discount-week" : "data-has-discount-month") : null
+
+      cards.forEach((card) => {
+        if (card instanceof HTMLElement) {
+          const name = card.dataset.name || ""
+          const asin = card.dataset.asin || ""
+          const matchesQuery = name.includes(query) || asin.includes(query)
+
+          let matchesFilter = true
+          if (filterAttr) {
+            matchesFilter = card.getAttribute(filterAttr) === "true"
+          }
+
+          if (matchesQuery && matchesFilter) {
+            card.style.display = ""
+          } else {
+            card.style.display = "none"
+          }
+        }
+      })
+
+      // Hide empty categories
+      const categories = document.querySelectorAll(".category-node")
+      categories.forEach((cat) => {
+        if (cat instanceof HTMLElement) {
+          const hasVisibleCards = Array.from(cat.querySelectorAll(".card")).some(c => (c as HTMLElement).style.display !== "none")
+          if (hasVisibleCards) {
+            cat.style.display = ""
+          } else {
+            cat.style.display = "none"
+          }
+        }
+      })
+    })
+  }
+
+  // Real-time Sort Option
+  const sortSelect = document.getElementById("sort-select")
+  if (sortSelect) {
+    sortSelect.addEventListener("change", () => {
+      const value = (sortSelect as HTMLSelectElement).value
+      const cardsContainers = document.querySelectorAll(".cards")
+
+      cardsContainers.forEach((container) => {
+        const cards = Array.from(container.children) as HTMLElement[]
+        
+        cards.sort((a, b) => {
+          if (value === "price-asc") {
+            const pa = parseFloat(a.dataset.price || "0")
+            const pb = parseFloat(b.dataset.price || "0")
+            return pa - pb
+          } else if (value === "price-desc") {
+            const pa = parseFloat(a.dataset.price || "0")
+            const pb = parseFloat(b.dataset.price || "0")
+            return pb - pa
+          } else if (value === "discount-desc") {
+            const da = parseFloat(a.dataset.discount || "0")
+            const db = parseFloat(b.dataset.discount || "0")
+            return db - da
+          } else if (value === "date-desc") {
+            const t1 = parseInt(a.dataset.date || "0", 10)
+            const t2 = parseInt(b.dataset.date || "0", 10)
+            return t2 - t1
+          } else {
+            const idxA = parseInt(a.dataset.index || "0", 10)
+            const idxB = parseInt(b.dataset.index || "0", 10)
+            return idxA - idxB
+          }
+        })
+
+        cards.forEach((card) => {
+          container.appendChild(card)
+        })
+      })
+    })
+  }
+
+  // Main Chart Range Selector & Rendering
+  const chartContainer = document.getElementById("chart-container")
+  const rangeButtons = document.querySelectorAll(".range-btn")
+
+  if (chartContainer && rangeButtons.length > 0) {
+    const rawSeries = chartContainer.dataset.series
+    if (rawSeries) {
+      try {
+        const fullSeries = JSON.parse(rawSeries)
+
+        const updateMainChart = (rangeValue: string) => {
+          const W = 900
+          const H = 340
+          const PL = 72
+          const PR = 20
+          const PT = 20
+          const PB = 44
+          const PW = W - PL - PR
+          const PH = H - PT - PB
+
+          let filteredSeries = fullSeries.map((s: any) => {
+            let pts = s.historyPoints || []
+            if (rangeValue !== "all") {
+              const days = parseInt(rangeValue, 10)
+              const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000
+              pts = pts.filter((pt: any) => new Date(pt.scrapedAt).getTime() >= cutoffTime)
+            }
+            return { ...s, pts }
+          }).filter((s: any) => s.pts.length > 0)
+
+          const allPrices = filteredSeries.flatMap((s: any) => s.pts.map((pt: any) => pt.price))
+          const allDates = filteredSeries.flatMap((s: any) => s.pts.map((pt: any) => new Date(pt.scrapedAt).getTime()))
+
+          if (allPrices.length === 0 || allDates.length === 0) {
+            chartContainer.innerHTML = "<p style='color:#64748b;font-size:0.85rem;text-align:center;padding:4rem;'>No hay datos disponibles para este período.</p>"
+            return
+          }
+
+          const minPrice = Math.min(...allPrices)
+          const maxPrice = Math.max(...allPrices)
+          const minDate = Math.min(...allDates)
+          const maxDate = Math.max(...allDates)
+
+          const margin = (maxPrice - minPrice) * 0.1 || 1
+          const yMin = minPrice - margin
+          const yMax = maxPrice + margin
+
+          const getX = (ts: number) => maxDate === minDate ? PL + PW / 2 : PL + ((ts - minDate) / (maxDate - minDate)) * PW
+          const getY = (p: number) => yMax === yMin ? PT + PH / 2 : PT + ((yMax - p) / (yMax - yMin)) * PH
+
+          const fmtVal = (price: number, currency: string) => {
+            const formatted = price.toLocaleString("es-AR", { maximumFractionDigits: 0 })
+            const symbol = currency === "ARS" || currency === "$" ? "$" : (currency || "$")
+            return `${symbol} ${formatted}`
+          }
+
+          const yTicks = Array.from({ length: 5 }, (_, i) => yMax - (i / 4) * (yMax - yMin))
+          const yTicksHTML = yTicks.map(v => `
+            <g>
+              <line x1="${PL}" y1="${getY(v)}" x2="${W - PR}" y2="${getY(v)}" class="grid" stroke="rgba(255,255,255,0.035)" stroke-width="1" />
+              <text x="${PL - 10}" y="${getY(v) + 4}" class="label" text-anchor="end" fill="#475569" font-size="10" font-family="JetBrains Mono, monospace">${fmtVal(v, filteredSeries[0]?.currency || "ARS")}</text>
+            </g>
+          `).join("")
+
+          const uniqueDays = [...new Set(filteredSeries.flatMap((s: any) => s.pts.map((pt: any) => pt.scrapedAt.slice(0, 10))))]
+          const xTickCount = Math.min(6, uniqueDays.length)
+          const xStep = allDates.length > 1 ? (maxDate - minDate) / Math.max(xTickCount - 1, 1) : 0
+          let xTicksHTML = ""
+          for (let i = 0; i < xTickCount; i++) {
+            const ts = minDate + i * xStep
+            const label = new Date(ts).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })
+            xTicksHTML += `
+              <text x="${getX(ts)}" y="${H - PB + 22}" class="label" text-anchor="middle" fill="#475569" font-size="10" font-family="JetBrains Mono, monospace">${label}</text>
+            `
+          }
+
+          const pathsHTML = filteredSeries.map((s: any) => {
+            const d = s.pts.map((pt: any, idx: number) => `${idx === 0 ? "M" : "L"}${getX(new Date(pt.scrapedAt).getTime()).toFixed(1)} ${getY(pt.price).toFixed(1)}`).join(" ")
+            return `
+              <path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" class="chart-line" />
+            `
+          }).join("")
+
+          const circlesHTML = filteredSeries.flatMap((s: any) => {
+            return s.pts.map((pt: any) => {
+              const cx = getX(new Date(pt.scrapedAt).getTime())
+              const cy = getY(pt.price)
+              const dateStr = new Date(pt.scrapedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit" }) + "hs"
+              return `
+                <circle
+                  cx="${cx}"
+                  cy="${cy}"
+                  r="4.5"
+                  fill="${s.color}"
+                  class="point"
+                  data-price="${fmtVal(pt.price, s.currency || "ARS")}"
+                  data-date="${dateStr}"
+                  data-name="${s.customName || s.title || s.asin}"
+                  data-color="${s.color}"
+                />
+              `
+            })
+          }).join("")
+
+          chartContainer.innerHTML = `
+            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Historial de precios de MercadoLibre" style="width:100%; height:auto; display:block;">
+              ${yTicksHTML}
+              ${xTicksHTML}
+              ${pathsHTML}
+              ${circlesHTML}
+            </svg>
+            <div class="tooltip" id="chart-tooltip"></div>
+          `
+
+          const svg = chartContainer.querySelector("svg")!
+          const tooltip = chartContainer.querySelector("#chart-tooltip") as HTMLElement
+          const points = chartContainer.querySelectorAll(".point")
+
+          if (tooltip && svg) {
+            points.forEach((point) => {
+              point.addEventListener("mouseenter", () => {
+                const price = point.getAttribute("data-price")
+                const date = point.getAttribute("data-date")
+                const name = point.getAttribute("data-name")
+                const color = point.getAttribute("data-color") || "#FFF159"
+
+                tooltip.innerHTML = `<span style="font-size:0.65rem; opacity:0.8; display:block; font-weight:500; color:#3f3f46; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px">${name}</span><strong>${price}</strong> <span style="font-weight:500; font-size:0.65rem; color:#4b5563">(${date})</span>`
+                tooltip.style.borderColor = color
+                tooltip.classList.add("visible")
+
+                const svgRect = svg.getBoundingClientRect()
+                const cx = parseFloat(point.getAttribute("cx") || "0")
+                const cy = parseFloat(point.getAttribute("cy") || "0")
+
+                const px = (cx / W) * svgRect.width
+                const py = (cy / H) * svgRect.height
+
+                tooltip.style.left = `${px}px`
+                tooltip.style.top = `${py}px`
+              })
+
+              point.addEventListener("mouseleave", () => {
+                tooltip.classList.remove("visible")
+              })
+            })
+          }
+        }
+
+        rangeButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            rangeButtons.forEach(b => b.classList.remove("active"))
+            btn.classList.add("active")
+            const range = btn.getAttribute("data-range") || "all"
+            updateMainChart(range)
+          })
+        })
+
+      } catch (err) {
+        console.error("Error parsing main chart series data", err)
+      }
+    }
   }
 </script>
