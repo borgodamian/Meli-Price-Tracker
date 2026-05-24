@@ -21,6 +21,7 @@ export interface ProductSummary {
   hasDiscountDay: boolean
   hasDiscountWeek: boolean
   hasDiscountMonth: boolean
+  historyPoints: { price: number; scrapedAt: string }[]
 }
 
 export interface CategoryGroup {
@@ -142,7 +143,14 @@ const delta = (a: number | null, b: number | null) =>
                       )}
                     </div>
 
-                    <div class="range-box">
+                    <div
+                      class="range-box"
+                      title="Ver historial de precios"
+                      data-history={JSON.stringify(p.historyPoints)}
+                      data-title={p.title || "Producto"}
+                      data-color={color}
+                      data-currency={p.currency || "ARS"}
+                    >
                       <span class="range-val">{fmt(p.minPrice, p.currency)}</span>
                       <div class="range-track">
                         <div class="range-progress" style={`background:${color}; left:0%; right: 0%; opacity: 0.3`} />
@@ -541,6 +549,17 @@ const delta = (a: number | null, b: number | null) =>
     font-size: 0.65rem;
     color: #475569;
     font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    padding: 0.25rem 0.4rem;
+    border-radius: 6px;
+    transition: background-color 0.15s, color 0.15s;
+    user-select: none;
+    margin: 0.2rem -0.4rem;
+  }
+
+  .range-box:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+    color: #cbd5e1;
   }
 
   .range-val {

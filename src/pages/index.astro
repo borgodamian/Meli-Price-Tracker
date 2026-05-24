@@ -510,6 +510,22 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
       </>
     )}
   </main>
+
+  <div class="modal" id="price-history-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+      <button class="modal-close" id="modal-close-btn">&times;</button>
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-product-title">Historial de Precios</h3>
+        <p class="modal-subtitle">Evolución de precios del producto</p>
+      </div>
+      <div class="modal-body">
+        <div class="modal-chart-container" id="modal-chart-container">
+          <!-- SVG dinámico se inyectará aquí -->
+        </div>
+      </div>
+    </div>
+  </div>
 </Layout>
 
 <style>
@@ -915,6 +931,139 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
     .legend { margin-top: 0.5rem; }
     .subcategory-wrapper { padding-left: 0; border-left: none; }
   }
+
+  /* --- Modal Styles --- */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1000;
+  }
+
+  .modal.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(11, 12, 16, 0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  .modal-container {
+    position: relative;
+    background: #1a1b23;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    width: 90%;
+    max-width: 620px;
+    padding: 2.25rem 2rem 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 241, 89, 0.03);
+    transform: scale(0.92);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1001;
+  }
+
+  .modal.active .modal-container {
+    transform: scale(1);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.5rem;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 1.8rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+
+  .modal-close:hover {
+    color: #fff;
+  }
+
+  .modal-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .modal-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 2rem;
+    letter-spacing: -0.01em;
+  }
+
+  .modal-subtitle {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0.35rem 0 0;
+  }
+
+  .modal-body {
+    position: relative;
+  }
+
+  .modal-chart-container {
+    position: relative;
+    background: rgba(15, 23, 42, 0.3);
+    border-radius: 16px;
+    padding: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  .chart-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: #FFF159;
+    color: #0b0c10;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 100ms ease;
+    transform: translate(-50%, -100%);
+    margin-top: -12px;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid #e1d000;
+    z-index: 1002;
+  }
+
+  .chart-tooltip.visible {
+    opacity: 1;
+  }
+
+  .chart-circle {
+    cursor: pointer;
+    transition: r 0.15s;
+  }
+
+  .chart-circle:hover {
+    r: 6.5;
+  }
 </style>
 
 <script>
@@ -1004,6 +1153,181 @@ const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
           })
         }
       })
+    })
+  }
+
+  // Helper to render modal chart
+  function renderModalChart(historyPoints: any[], color: string, currency: string) {
+    const container = document.getElementById("modal-chart-container")
+    if (!container) return
+
+    if (!historyPoints || historyPoints.length === 0) {
+      container.innerHTML = "<p style='color:#64748b;font-size:0.85rem;text-align:center;padding:2rem;'>No hay datos históricos disponibles.</p>"
+      return
+    }
+
+    const W = 540
+    const H = 240
+    const PL = 64
+    const PR = 16
+    const PT = 16
+    const PB = 36
+    const PW = W - PL - PR
+    const PH = H - PT - PB
+
+    const points = historyPoints.map(pt => ({
+      price: pt.price,
+      time: new Date(pt.scrapedAt).getTime(),
+      rawDate: pt.scrapedAt
+    })).sort((a, b) => a.time - b.time)
+
+    const prices = points.map(pt => pt.price)
+    const times = points.map(pt => pt.time)
+
+    const minPrice = Math.min(...prices)
+    const maxPrice = Math.max(...prices)
+    const minTime = Math.min(...times)
+    const maxTime = Math.max(...times)
+
+    const margin = (maxPrice - minPrice) * 0.1 || 10
+    const yMin = minPrice - margin
+    const yMax = maxPrice + margin
+
+    const getX = (t: number) => maxTime === minTime ? PL + PW / 2 : PL + ((t - minTime) / (maxTime - minTime)) * PW
+    const getY = (p: number) => yMax === yMin ? PT + PH / 2 : PT + ((yMax - p) / (yMax - yMin)) * PH
+
+    let pathD = ""
+    points.forEach((pt, idx) => {
+      const px = getX(pt.time).toFixed(1)
+      const py = getY(pt.price).toFixed(1)
+      pathD += `${idx === 0 ? "M" : "L"}${px} ${py}`
+    })
+
+    const fmtVal = (v: number) => {
+      const formatted = v.toLocaleString("es-AR", { maximumFractionDigits: 0 })
+      const symbol = currency === "ARS" || currency === "$" ? "$" : (currency || "$")
+      return `${symbol} ${formatted}`
+    }
+
+    const yTicks = Array.from({ length: 4 }, (_, i) => yMax - (i / 3) * (yMax - yMin))
+    const yTicksHTML = yTicks.map(v => `
+      <g>
+        <line x1="${PL}" y1="${getY(v)}" x2="${W - PR}" y2="${getY(v)}" stroke="rgba(255,255,255,0.035)" stroke-width="1" />
+        <text x="${PL - 10}" y="${getY(v) + 4}" fill="#475569" font-size="10" font-family="JetBrains Mono, monospace" text-anchor="end">${fmtVal(v)}</text>
+      </g>
+    `).join("")
+
+    const uniqueDates = [...new Set(points.map(pt => pt.rawDate.slice(0, 10)))]
+    const xTickCount = Math.min(4, uniqueDates.length)
+    const xStep = points.length > 1 ? (maxTime - minTime) / Math.max(xTickCount - 1, 1) : 0
+    let xTicksHTML = ""
+    for (let i = 0; i < xTickCount; i++) {
+      const t = minTime + i * xStep
+      const label = new Date(t).toLocaleDateString("es-AR", { day: "2-digit", month: "short" })
+      xTicksHTML += `
+        <text x="${getX(t)}" y="${H - 8}" fill="#475569" font-size="10" font-family="JetBrains Mono, monospace" text-anchor="middle">${label}</text>
+      `
+    }
+
+    const circlesHTML = points.map(pt => {
+      const cx = getX(pt.time)
+      const cy = getY(pt.price)
+      const dateStr = new Date(pt.rawDate).toLocaleDateString("es-AR", { day: "2-digit", month: "short", hour: "2-digit" }) + "hs"
+      return `
+        <circle
+          cx="${cx}"
+          cy="${cy}"
+          r="4.5"
+          fill="${color}"
+          class="chart-circle"
+          data-price="${fmtVal(pt.price)}"
+          data-date="${dateStr}"
+        />
+      `
+    }).join("")
+
+    container.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" style="overflow: visible; display: block;">
+        ${yTicksHTML}
+        ${xTicksHTML}
+        <path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+        ${circlesHTML}
+      </svg>
+      <div class="chart-tooltip" id="modal-chart-tooltip"></div>
+    `
+
+    const circles = container.querySelectorAll(".chart-circle")
+    const tooltip = container.querySelector("#modal-chart-tooltip") as HTMLElement
+    const svg = container.querySelector("svg")
+
+    if (tooltip && svg) {
+      circles.forEach(circle => {
+        circle.addEventListener("mouseenter", () => {
+          const price = circle.getAttribute("data-price")
+          const date = circle.getAttribute("data-date")
+          tooltip.innerHTML = `<strong>${price}</strong> <span style="font-size:0.65rem; opacity:0.8; margin-left:4px;">(${date})</span>`
+          tooltip.classList.add("visible")
+
+          const svgRect = svg.getBoundingClientRect()
+          const cx = parseFloat(circle.getAttribute("cx") || "0")
+          const cy = parseFloat(circle.getAttribute("cy") || "0")
+
+          const px = (cx / W) * svgRect.width
+          const py = (cy / H) * svgRect.height
+
+          tooltip.style.left = `${px}px`
+          tooltip.style.top = `${py}px`
+        })
+
+        circle.addEventListener("mouseleave", () => {
+          tooltip.classList.remove("visible")
+        })
+      })
+    }
+  }
+
+  // Modal toggle and event handlers
+  const modal = document.getElementById("price-history-modal")
+  const modalOverlay = modal?.querySelector(".modal-overlay")
+  const modalCloseBtn = document.getElementById("modal-close-btn")
+  const modalProductTitle = document.getElementById("modal-product-title")
+
+  if (modal && modalOverlay && modalCloseBtn && modalProductTitle) {
+    const closeModal = () => {
+      modal.classList.remove("active")
+    }
+
+    modalOverlay.addEventListener("click", closeModal)
+    modalCloseBtn.addEventListener("click", closeModal)
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeModal()
+      }
+    })
+
+    document.addEventListener("click", (e) => {
+      const target = e.target
+      if (target && typeof (target as any).closest === "function") {
+        const rangeBox = (target as any).closest(".range-box")
+        if (rangeBox && rangeBox instanceof HTMLElement) {
+          const historyData = rangeBox.dataset.history
+          if (historyData) {
+            try {
+              const historyPoints = JSON.parse(historyData)
+              const title = rangeBox.dataset.title || "Producto"
+              const color = rangeBox.dataset.color || "#FFF159"
+              const currency = rangeBox.dataset.currency || "ARS"
+
+              modalProductTitle.textContent = title
+              modal.classList.add("active")
+              renderModalChart(historyPoints, color, currency)
+            } catch (err) {
+              console.error("Error parsing history data", err)
+            }
+          }
+        }
+      }
     })
   }
 </script>
