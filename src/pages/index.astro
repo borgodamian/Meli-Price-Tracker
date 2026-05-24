@@ -118,6 +118,9 @@ type ProductSummary = {
   categoryPath: string
   customName: string | null
   historyPoints: { price: number; scrapedAt: string }[]
+  hasDiscountDay: boolean
+  hasDiscountWeek: boolean
+  hasDiscountMonth: boolean
 }
 
 let allPoints: PriceRow[] = []
@@ -145,6 +148,32 @@ const getGroupHistory = (asins: string[], allPointsForGroup: PriceRow[]) => {
     }
   }
   return aggregatedHistory
+}
+
+const getPriceDeltaForDuration = (historyPoints: { price: number; scrapedAt: string }[], durationMs: number) => {
+  if (historyPoints.length < 2) return null
+  const latestPrice = historyPoints.at(-1)!.price
+  if (latestPrice === null) return null
+  const latestTime = new Date(historyPoints.at(-1)!.scrapedAt).getTime()
+  const targetTime = latestTime - durationMs
+
+  let refPoint = historyPoints[0]
+  for (const pt of historyPoints) {
+    const ptTime = new Date(pt.scrapedAt).getTime()
+    if (ptTime <= targetTime) {
+      refPoint = pt
+    } else {
+      break
+    }
+  }
+
+  if (refPoint.price !== null && refPoint.price !== 0) {
+    const diff = latestPrice - refPoint.price
+    if (diff < 0) {
+      return ((refPoint.price - latestPrice) / refPoint.price) * 100
+    }
+  }
+  return null
 }
 
 try {
@@ -201,6 +230,14 @@ try {
     const hasStock = latestSnapshots.some(s => s.availability === "En stock")
     const maxScrapedAt = new Date(Math.max(...latestSnapshots.map(s => new Date(s.scrapedAt).getTime()))).toISOString()
 
+    const dDay = getPriceDeltaForDuration(historyPoints, 24 * 60 * 60 * 1000)
+    const dWeek = getPriceDeltaForDuration(historyPoints, 7 * 24 * 60 * 60 * 1000)
+    const dMonth = getPriceDeltaForDuration(historyPoints, 30 * 24 * 60 * 60 * 1000)
+
+    const hasDiscountDay = dDay !== null && dDay > 0
+    const hasDiscountWeek = dWeek !== null && dWeek > 0
+    const hasDiscountMonth = dMonth !== null && dMonth > 0
+
     return {
       asin: config.groupId,
       title: config.name || cheapestSnapshot?.title || "Producto",
@@ -218,7 +255,10 @@ try {
       lastSeen: maxScrapedAt,
       categoryPath: config.categoryPath || "Otros",
       customName: config.name || null,
-      historyPoints
+      historyPoints,
+      hasDiscountDay,
+      hasDiscountWeek,
+      hasDiscountMonth
     }
   }).filter((p): p is ProductSummary => p !== null)
 
@@ -338,10 +378,9 @@ const fmtDate = (s: string) => new Date(s).toLocaleDateString("es-AR", { day: "2
 const delta = (a: number | null, b: number | null) =>
   a != null && b != null && b !== 0 ? ((a - b) / b) * 100 : null
 
-const discountsCount = products.filter(p => {
-  const d = delta(p.latestPrice, p.previousPrice)
-  return d !== null && d < 0
-}).length
+const discountsTodayCount = products.filter(p => p.hasDiscountDay).length
+const discountsWeekCount = products.filter(p => p.hasDiscountWeek).length
+const discountsMonthCount = products.filter(p => p.hasDiscountMonth).length
 ---
 
 <Layout title="Meli Price Tracker | Monitoreo de Precios">
@@ -369,9 +408,17 @@ const discountsCount = products.filter(p => {
             <span class="stat-num">{uniqueDays.length}</span>
             <span class="stat-lbl">Días</span>
           </div>
-          <button class="stat-card interactive" id="discounts-filter-btn" title="Filtrar por ofertas del último día" data-count={discountsCount}>
-            <span class="stat-num">{discountsCount}</span>
+          <button class="stat-card interactive filter-btn-day" id="filter-btn-day" title="Filtrar por ofertas del último día" data-count={discountsTodayCount}>
+            <span class="stat-num">{discountsTodayCount}</span>
             <span class="stat-lbl">Rebajas Hoy</span>
+          </button>
+          <button class="stat-card interactive filter-btn-week" id="filter-btn-week" title="Filtrar por ofertas de la última semana" data-count={discountsWeekCount}>
+            <span class="stat-num">{discountsWeekCount}</span>
+            <span class="stat-lbl">Rebajas Semana</span>
+          </button>
+          <button class="stat-card interactive filter-btn-month" id="filter-btn-month" title="Filtrar por ofertas del último mes" data-count={discountsMonthCount}>
+            <span class="stat-num">{discountsMonthCount}</span>
+            <span class="stat-lbl">Rebajas Mes</span>
           </button>
         </div>
       )}
@@ -560,23 +607,63 @@ const discountsCount = products.filter(p => {
     font-family: inherit;
   }
 
-  .stat-card.interactive .stat-num {
+  .stat-card.interactive.filter-btn-day .stat-num {
     color: #4ade80;
   }
 
-  .stat-card.interactive:hover {
+  .stat-card.interactive.filter-btn-day:hover {
     background: rgba(74, 222, 128, 0.06);
     border-color: rgba(74, 222, 128, 0.25);
     transform: translateY(-2px);
   }
 
-  .stat-card.interactive.active {
+  .stat-card.interactive.filter-btn-day.active {
     background: rgba(74, 222, 128, 0.15);
     border-color: rgba(74, 222, 128, 0.5);
     box-shadow: 0 0 16px rgba(74, 222, 128, 0.25);
   }
 
-  .page.filter-discounts-only .card:not([data-has-discount="true"]) {
+  .stat-card.interactive.filter-btn-week .stat-num {
+    color: #3b82f6;
+  }
+
+  .stat-card.interactive.filter-btn-week:hover {
+    background: rgba(59, 130, 246, 0.06);
+    border-color: rgba(59, 130, 246, 0.25);
+    transform: translateY(-2px);
+  }
+
+  .stat-card.interactive.filter-btn-week.active {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.25);
+  }
+
+  .stat-card.interactive.filter-btn-month .stat-num {
+    color: #ec4899;
+  }
+
+  .stat-card.interactive.filter-btn-month:hover {
+    background: rgba(236, 72, 153, 0.06);
+    border-color: rgba(236, 72, 153, 0.25);
+    transform: translateY(-2px);
+  }
+
+  .stat-card.interactive.filter-btn-month.active {
+    background: rgba(236, 72, 153, 0.15);
+    border-color: rgba(236, 72, 153, 0.5);
+    box-shadow: 0 0 16px rgba(236, 72, 153, 0.25);
+  }
+
+  .page.filter-day .card:not([data-has-discount-day="true"]) {
+    display: none !important;
+  }
+
+  .page.filter-week .card:not([data-has-discount-week="true"]) {
+    display: none !important;
+  }
+
+  .page.filter-month .card:not([data-has-discount-month="true"]) {
     display: none !important;
   }
 
@@ -866,26 +953,55 @@ const discountsCount = products.filter(p => {
     })
   }
 
-  // Price drops toggle filter
-  const filterBtn = document.getElementById("discounts-filter-btn")
+  // Price drops toggle filters
+  const btnDay = document.getElementById("filter-btn-day")
+  const btnWeek = document.getElementById("filter-btn-week")
+  const btnMonth = document.getElementById("filter-btn-month")
   const pageElement = document.querySelector(".page")
 
-  if (filterBtn && pageElement) {
-    filterBtn.addEventListener("click", () => {
-      const isActive = filterBtn.classList.toggle("active")
-      pageElement.classList.toggle("filter-discounts-only", isActive)
+  if (pageElement) {
+    const filterButtons = [
+      { btn: btnDay, class: "filter-day", attr: "data-has-discount-day" },
+      { btn: btnWeek, class: "filter-week", attr: "data-has-discount-week" },
+      { btn: btnMonth, class: "filter-month", attr: "data-has-discount-month" }
+    ]
 
-      const categories = document.querySelectorAll(".category-node")
-      categories.forEach((cat) => {
-        if (isActive) {
-          const hasDiscountCard = cat.querySelector('.card[data-has-discount="true"]') !== null
-          if (hasDiscountCard) {
-            cat.style.display = ""
-          } else {
-            cat.style.display = "none"
-          }
+    filterButtons.forEach((item) => {
+      if (!item.btn) return
+      item.btn.addEventListener("click", () => {
+        const isCurrentlyActive = item.btn.classList.contains("active")
+
+        // Deactivate all first
+        filterButtons.forEach((other) => {
+          other.btn?.classList.remove("active")
+          pageElement.classList.remove(other.class)
+        })
+
+        if (!isCurrentlyActive) {
+          // Activate this one
+          item.btn.classList.add("active")
+          pageElement.classList.add(item.class)
+
+          // Filter category nodes
+          const categories = document.querySelectorAll(".category-node")
+          categories.forEach((cat) => {
+            if (cat instanceof HTMLElement) {
+              const hasDiscountCard = cat.querySelector(`.card[${item.attr}="true"]`) !== null
+              if (hasDiscountCard) {
+                cat.style.display = ""
+              } else {
+                cat.style.display = "none"
+              }
+            }
+          })
         } else {
-          cat.style.display = ""
+          // Reset all category nodes display
+          const categories = document.querySelectorAll(".category-node")
+          categories.forEach((cat) => {
+            if (cat instanceof HTMLElement) {
+              cat.style.display = ""
+            }
+          })
         }
       })
     })

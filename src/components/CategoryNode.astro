@@ -18,6 +18,9 @@ export interface ProductSummary {
   lastSeen: string
   categoryPath: string
   customName: string | null
+  hasDiscountDay: boolean
+  hasDiscountWeek: boolean
+  hasDiscountMonth: boolean
 }
 
 export interface CategoryGroup {
@@ -77,9 +80,13 @@ const delta = (a: number | null, b: number | null) =>
           {category.products.map((p) => {
             const d = delta(p.latestPrice, p.previousPrice)
             const color = colorMap.get(p.asin) || "#FFF159"
-            const hasDiscount = d !== null && d < 0
             return (
-              <article class="card" data-has-discount={hasDiscount ? "true" : "false"}>
+              <article
+                class="card"
+                data-has-discount-day={p.hasDiscountDay ? "true" : "false"}
+                data-has-discount-week={p.hasDiscountWeek ? "true" : "false"}
+                data-has-discount-month={p.hasDiscountMonth ? "true" : "false"}
+              >
                 <div class="card-body-wrapper">
                   {/* Product Image left thumbnail */}
                   <div class="product-thumb">
@@ -567,12 +574,30 @@ const delta = (a: number | null, b: number | null) =>
     display: block;
   }
 
-  .card[data-has-discount="true"] {
+  .card[data-has-discount-day="true"] {
     border-color: rgba(74, 222, 128, 0.15);
   }
 
-  .card[data-has-discount="true"]:hover {
+  .card[data-has-discount-day="true"]:hover {
     border-color: rgba(74, 222, 128, 0.4);
     box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(74, 222, 128, 0.12);
+  }
+
+  .card[data-has-discount-week="true"] {
+    border-color: rgba(59, 130, 246, 0.15);
+  }
+
+  .card[data-has-discount-week="true"]:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(59, 130, 246, 0.12);
+  }
+
+  .card[data-has-discount-month="true"] {
+    border-color: rgba(236, 72, 153, 0.15);
+  }
+
+  .card[data-has-discount-month="true"]:hover {
+    border-color: rgba(236, 72, 153, 0.4);
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(236, 72, 153, 0.12);
   }
 </style>
